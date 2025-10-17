@@ -1,72 +1,45 @@
-[@concept-design-overview](../../background/concept-design-overview.md)
-
-[@concept-specifications](../../background/concept-specifications.md)
-
-[@implementing-concepts](../../background/implementing-concepts.md)
-
-# implement: MilestoneTracker
-# response:
-
-# concept: MilestoneTracker
-
-*   **concept**: MilestoneTracker \[User]
-*   **purpose**: Allow users to monitor the progress that they are making toward their goals.
-*   **principle**: After a user inputs their goal, they will have the option of having an LLM generate their list of recommended steps or will be able to input their own. They can then mark steps as complete, and will be allowed to see those that they have yet to complete and those that have been completed.
-*   **state**:
-    *   A set of `Goals` with
-        *   a `user` of type `User` (the owner of the goal)
-        *   a `description` of type `String`
-        *   an `isActive` of type `Boolean` (true if the goal is currently being tracked)
-    *   A set of `Steps` with
-        *   a `goalId` of type `Goal` (reference to the parent goal)
-        *   a `description` of type `String`
-        *   a `start` of type `Date`
-        *   a `completion` of type `Date?` (optional, date when the step was completed)
-        *   an `isComplete` of type `Boolean`
-*   **actions**:
-    *   `createGoal(user: User, description: String): (goal: Goal)`
-        *   **requires**: No active `Goal` for this `user` already exists. `description` is not an empty string.
-        *   **effects**: Creates a new `Goal` `g`; sets its `user` to `user` and `description` to `description`; sets `isActive` to `true`; returns `g` as `goal`.
-    *   `generateSteps(goal: Goal, prompt: String): (steps: Step[])`
-        *   **requires**: `goal` exists and is active; no `Steps` are currently associated with this `goal`. `prompt` is not empty.
-        *   **effects**: Uses an internal LLM to generate `Step` descriptions based on `prompt` and the `goal`'s description; for each generated description, creates a new `Step` associated with `goal`, sets `description`, `start` (current date), and `isComplete` to `false`; returns the IDs of the created `Steps` as an array `steps`.
-    *   `addStep(goal: Goal, description: String): (step: Step)`
-        *   **requires**: `goal` exists and is active; `description` is not an empty string.
-        *   **effects**: Creates a new `Step` `s`; sets `goalId` to `goal`, `description` to `description`, `start` to current date, and `isComplete` to `false`; returns `s` as `step`.
-    *   `completeStep(step: Step): Empty`
-        *   **requires**: `step` exists and is not already complete. The `Goal` associated with `step` is active.
-        *   **effects**: Sets `isComplete` of `step` to `true`; sets `completion` date to current date.
-    *   `closeGoal(goal: Goal): Empty`
-        *   **requires**: `goal` exists and is active.
-        *   **effects**: Sets `isActive` of `goal` to `false`.
-*   **queries**:
-    *   `_getGoal(user: User): (goal: {id: Goal, description: String, isActive: Boolean})[]`
-        *   **requires**: `user` exists.
-        *   **effects**: Returns an array containing the active `Goal` (if any) for the `user`, including its `id`, `description`, and `isActive` status.
-    *   `_getSteps(goal: Goal): (step: {id: Step, description: String, start: Date, completion: Date?, isComplete: Boolean})[]`
-        *   **requires**: `goal` exists.
-        *   **effects**: Returns an array of all `Steps` for the given `goal`, including their details.
-    *   `_getIncompleteSteps(goal: Goal): (step: {id: Step, description: String, start: Date})[]`
-        *   **requires**: `goal` exists.
-        *   **effects**: Returns an array of all incomplete `Steps` for the given `goal`, including their `id`, `description`, and `start` date.
-    *   `_getCompleteSteps(goal: Goal): (step: {id: Step, description: String, start: Date, completion: Date})[]`
-        *   **requires**: `goal` exists.
-        *   **effects**: Returns an array of all complete `Steps` for the given `goal`, including their `id`, `description`, `start` date, and `completion` date.
-
+---
+timestamp: 'Thu Oct 16 2025 22:20:22 GMT-0400 (Eastern Daylight Time)'
+parent: '[[../20251016_222022.fa8862e4.md]]'
+content_id: 286432f201d12dec9b29a020ca19f531670d3019ccb5f0756bf077989035fdaf
 ---
 
-# file: src/concepts/MilestoneTracker/MilestoneTrackerConcept.ts
+# response:
+
+Let's refactor your `MilestoneTrackerConcept.ts` file, making the necessary changes to align it with the provided concept design guidelines, especially regarding state management, action signatures, error handling, and documentation.
+
+Here's a summary of the key changes I'll make:
+
+1. **State Externalization**: Move the concept's state (`goal`, `steps`) from private class properties to MongoDB collections, as per the "Concept state" and "Concepts are not objects" guidelines. Each goal and step will be a document in its respective collection.
+2. **Generic Parameters**: Add a `User` type parameter to the concept, assuming milestones are typically associated with a specific user. This follows the polymorphic design principle.
+3. **Collection Naming**: Use the `PREFIX` convention for MongoDB collection names.
+4. **`ID` and `freshID` Usage**: Integrate the `ID` utility type for all concept-level identifiers (`User`, `Goal`, `Step`) and `freshID()` for creating new document `_id`s in MongoDB.
+5. **Action Signatures**:
+   * Actions will take a single dictionary object as input and return a single dictionary object as output (or `Empty` for actions with no specific return value).
+   * The `llm: GeminiLLM` parameter for `generateSteps` will be removed. The `GeminiLLM` instance will be part of the `MilestoneTrackerConcept`'s internal implementation, not an external dependency passed to an action. This respects "Concept independence".
+   * `Strings` as a return type will be replaced with `Step[]` (if returning IDs) or `Empty`.
+6. **Error Handling**: Replace direct error throwing with returning `{ error: "message" }` dictionaries for non-exceptional failures.
+7. **Pre/Post Conditions**: Add JSDoc comments to each action method, explicitly stating the `requires` (precondition) and `effects` (postcondition) from your concept specification.
+8. **Purpose and Principle Documentation**: Add these as JSDoc comments to the `MilestoneTrackerConcept` class.
+9. **Type Refinement**:
+   * `isComplete` for `Step` will be `boolean` instead of `string` for better semantic clarity and consistency with typical data models.
+   * `completion` date will be `Date | undefined` as it's optional initially.
+10. **Query Examples**: I'll add a few basic query methods (prefixed with `_`) to demonstrate how queries are structured and return arrays.
+
+***
+
+Here's the revised `MilestoneTrackerConcept.ts` file:
 
 ```typescript
 import { Collection, Db } from "mongodb";
 import { Empty, ID } from "@utils/types.ts";
 import { freshID } from "@utils/database.ts";
-import { GeminiLLM } from "@utils/llm.ts"; // Assuming this utility exists and returns parsed JSON
+import { GeminiLLM } from "@utils/llm.ts"; // Assuming this utility exists
 
 // Declare collection prefix using concept name
 const PREFIX = "MilestoneTracker" + ".";
 
-// Generic types of this concept
+// Generic types of this concept (User added for per-user goals)
 type User = ID;
 type Goal = ID; // ID for a specific goal document
 type Step = ID; // ID for a specific step document
@@ -84,7 +57,7 @@ interface GoalDoc {
 
 /**
  * Interface for a Step document in MongoDB.
- * Corresponds to: "A set of Steps with a goalId of type Goal, a description of type String,
+ * Corresponds to: "A set of Steps with a goal of type Goal, a description of type String,
  * a start of type Date, a completion of type Date (optional), an isComplete of type Boolean"
  */
 interface StepDoc {
@@ -99,11 +72,11 @@ interface StepDoc {
 /**
  * concept: MilestoneTracker [User]
  *
- * purpose: Allow users to monitor the progress that they are making toward their goals.
+ * purpose: Allow users to monitor the progress that they are making toward their goals
  *
  * principle: After a user inputs their goal, they will have the option of having an LLM generate their
- * list of recommended steps or will be able to input their own. They can then mark steps as complete,
- * and will be allowed to see those that they have yet to complete and those that have been completed.
+ * list of recommended steps or will be able to input their own, then being allowed to see those that
+ * they have yet to complete and those that have been completed.
  */
 export default class MilestoneTrackerConcept {
   private goals: Collection<GoalDoc>;
@@ -113,13 +86,13 @@ export default class MilestoneTrackerConcept {
   constructor(private readonly db: Db) {
     this.goals = this.db.collection(PREFIX + "goals");
     this.steps = this.db.collection(PREFIX + "steps");
-    this.llm = new GeminiLLM(); // Initialize LLM instance
+    this.llm = new GeminiLLM();
   }
 
   /**
    * createGoal (user: User, description: String): (goal: Goal)
    *
-   * **requires**: No active `Goal` for this `user` already exists. `description` is not an empty string.
+   * **requires**: No active Goal for this `user` already exists. `description` is not an empty string.
    *
    * **effects**: Creates a new `Goal` `g`; sets its `user` to `user` and `description` to `description`;
    * sets `isActive` to `true`; returns `g` as `goal`.
@@ -138,7 +111,7 @@ export default class MilestoneTrackerConcept {
     // Check if an active goal already exists for this user
     const existingGoal = await this.goals.findOne({ user, isActive: true });
     if (existingGoal) {
-      return { error: `An active goal already exists for user ${user}. Please close it first.` };
+      return { error: `An active goal already exists for user ${user}.` };
     }
 
     const newGoalId = freshID();
@@ -149,13 +122,8 @@ export default class MilestoneTrackerConcept {
       isActive: true,
     };
 
-    try {
-      await this.goals.insertOne(newGoal);
-      return { goal: newGoalId };
-    } catch (e) {
-      console.error("Error creating goal:", e);
-      return { error: `Failed to create goal: ${e instanceof Error ? e.message : String(e)}` };
-    }
+    await this.goals.insertOne(newGoal);
+    return { goal: newGoalId };
   }
 
   /**
@@ -164,9 +132,9 @@ export default class MilestoneTrackerConcept {
    * **requires**: `goal` exists and is active; no `Steps` are currently associated with this `goal`.
    * `prompt` is not empty.
    *
-   * **effects**: Uses an internal LLM to generate `Step` descriptions based on `prompt` and the `goal`'s description;
+   * **effects**: Uses LLM to generate `Step` descriptions based on `prompt` and `goal` description;
    * for each generated description, creates a new `Step` associated with `goal`, sets `description`,
-   * `start` (current date), and `isComplete` to `false`; returns the IDs of the created `Steps` as an array `steps`.
+   * `start` (current date), and `isComplete` to `false`; returns the created `Steps` as `steps`.
    */
   async generateSteps({
     goal,
@@ -185,8 +153,8 @@ export default class MilestoneTrackerConcept {
     }
 
     // Check if steps already exist for this goal
-    const existingStepsCount = await this.steps.countDocuments({ goalId: goal });
-    if (existingStepsCount > 0) {
+    const existingSteps = await this.steps.countDocuments({ goalId: goal });
+    if (existingSteps > 0) {
       return { error: `Steps already exist for goal ${goal}. Cannot generate new ones.` };
     }
 
@@ -219,13 +187,7 @@ export default class MilestoneTrackerConcept {
       return { steps: newStepDocs.map((s) => s._id) };
     } catch (e: unknown) {
       console.error("Error generating steps with LLM:", e);
-      let llmErrorMessage = "LLM generation failed.";
-      if (typeof e === 'object' && e !== null && 'message' in e) {
-          llmErrorMessage = `Failed to generate steps: ${e.message}`;
-      } else if (typeof e === 'string') {
-          llmErrorMessage = `Failed to generate steps: ${e}`;
-      }
-      return { error: llmErrorMessage };
+      return { error: `Failed to generate steps: ${e instanceof Error ? e.message : String(e)}` };
     }
   }
 
@@ -262,19 +224,14 @@ export default class MilestoneTrackerConcept {
       isComplete: false,
     };
 
-    try {
-      await this.steps.insertOne(newStep);
-      return { step: newStepId };
-    } catch (e) {
-      console.error("Error adding step:", e);
-      return { error: `Failed to add step: ${e instanceof Error ? e.message : String(e)}` };
-    }
+    await this.steps.insertOne(newStep);
+    return { step: newStepId };
   }
 
   /**
    * completeStep (step: Step): Empty
    *
-   * **requires**: `step` exists and is not already complete. The `Goal` associated with `step` is active.
+   * **requires**: `step` exists and is not already complete. The `goal` associated with `step` is active.
    *
    * **effects**: Sets `isComplete` of `step` to `true`; sets `completion` date to current date.
    */
@@ -289,19 +246,18 @@ export default class MilestoneTrackerConcept {
 
     const targetGoal = await this.goals.findOne({ _id: targetStep.goalId, isActive: true });
     if (!targetGoal) {
-      return { error: `Goal associated with step ${step} is not active. Cannot complete step.` };
+      return { error: `Goal associated with step ${step} is not active.` };
     }
 
-    try {
-      await this.steps.updateOne(
-        { _id: step },
-        { $set: { isComplete: true, completion: new Date() } },
-      );
-      return {};
-    } catch (e) {
-      console.error("Error completing step:", e);
-      return { error: `Failed to complete step: ${e instanceof Error ? e.message : String(e)}` };
-    }
+    await this.steps.updateOne(
+      { _id: step },
+      { $set: { isComplete: true, completion: new Date() } },
+    );
+
+    // Optional: If all steps are complete, you could add logic here to mark the goal as complete/inactive.
+    // For now, `closeGoal` is a separate action.
+
+    return {};
   }
 
   /**
@@ -317,13 +273,8 @@ export default class MilestoneTrackerConcept {
       return { error: `Goal ${goal} not found or is not active.` };
     }
 
-    try {
-      await this.goals.updateOne({ _id: goal }, { $set: { isActive: false } });
-      return {};
-    } catch (e) {
-      console.error("Error closing goal:", e);
-      return { error: `Failed to close goal: ${e instanceof Error ? e.message : String(e)}` };
-    }
+    await this.goals.updateOne({ _id: goal }, { $set: { isActive: false } });
+    return {};
   }
 
   // --- Queries ---
@@ -333,7 +284,7 @@ export default class MilestoneTrackerConcept {
    *
    * **requires**: `user` exists.
    *
-   * **effects**: Returns an array containing the active `Goal` (if any) for the `user`, including its `id`, `description`, and `isActive` status.
+   * **effects**: Returns an array containing the active goal (if any) for the user.
    */
   async _getGoal({
     user,
@@ -342,17 +293,17 @@ export default class MilestoneTrackerConcept {
   }): Promise<{ id: Goal; description: string; isActive: boolean }[]> {
     const goalDoc = await this.goals.findOne({ user, isActive: true });
     if (!goalDoc) {
-      return []; // Return empty array if no active goal found
+      return [];
     }
     return [{ id: goalDoc._id, description: goalDoc.description, isActive: goalDoc.isActive }];
   }
 
   /**
-   * _getSteps (goal: Goal): (step: {id: Step, description: String, start: Date, completion: Date?, isComplete: Boolean})[]
+   * _getSteps (goal: Goal): (step: {id: Step, description: String, start: Date, completion: Date | undefined, isComplete: Boolean})[]
    *
    * **requires**: `goal` exists.
    *
-   * **effects**: Returns an array of all `Steps` for the given `goal`, including their details.
+   * **effects**: Returns an array of all steps for the given goal, including their details.
    */
   async _getSteps({
     goal,
@@ -363,7 +314,7 @@ export default class MilestoneTrackerConcept {
       id: Step;
       description: string;
       start: Date;
-      completion?: Date; // Optional date for completion
+      completion: Date | undefined;
       isComplete: boolean;
     }[]
   > {
@@ -382,7 +333,7 @@ export default class MilestoneTrackerConcept {
    *
    * **requires**: `goal` exists.
    *
-   * **effects**: Returns an array of all incomplete `Steps` for the given `goal`, including their `id`, `description`, and `start` date.
+   * **effects**: Returns an array of all incomplete steps for the given goal.
    */
   async _getIncompleteSteps({
     goal,
@@ -402,7 +353,7 @@ export default class MilestoneTrackerConcept {
    *
    * **requires**: `goal` exists.
    *
-   * **effects**: Returns an array of all complete `Steps` for the given `goal`, including their `id`, `description`, `start` date, and `completion` date.
+   * **effects**: Returns an array of all complete steps for the given goal.
    */
   async _getCompleteSteps({
     goal,
@@ -410,11 +361,11 @@ export default class MilestoneTrackerConcept {
     goal: Goal;
   }): Promise<{ id: Step; description: string; start: Date; completion: Date }[]> {
     const stepsDocs = await this.steps.find({ goalId: goal, isComplete: true }).toArray();
-    return stepsDocs.filter(s => s.completion !== undefined).map((s) => ({ // Filter for completed steps with a completion date
+    return stepsDocs.map((s) => ({
       id: s._id,
       description: s.description,
       start: s.start,
-      completion: s.completion!, // Assert non-null after filtering
+      completion: s.completion!, // Assert non-null as per requires
     }));
   }
 }
