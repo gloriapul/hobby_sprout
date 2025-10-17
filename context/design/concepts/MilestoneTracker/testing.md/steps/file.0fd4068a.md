@@ -1,11 +1,8 @@
-[@implementation](MilestoneTracker.md)
-[@gemini-llm](../../../src/utils/gemini-llm.ts)
-
-[@testing-concepts](../../background/testing-concepts.md)
-
-# test: MilestoneTracker
-
-# response:
+---
+timestamp: 'Thu Oct 16 2025 22:59:42 GMT-0400 (Eastern Daylight Time)'
+parent: '[[../20251016_225942.71b19f29.md]]'
+content_id: 0fd4068afb5f8cbd8138a904839aa74a2aa43cb6410c12bc45423f16cda67382
+---
 
 # file: src/concepts/MilestoneTracker/MilestoneTrackerConcept.test.ts
 
@@ -15,15 +12,13 @@ import { testDb, freshID } from "@utils/database.ts";
 import { ID } from "@utils/types.ts";
 import MilestoneTrackerConcept from "@concepts/MilestoneTracker/MilestoneTrackerConcept.ts";
 
-// In a real application, the API key would be loaded from environment variables (e.g., Deno.env.get("GEMINI_API_KEY")).
-// For testing purposes, we use a placeholder. The GeminiLLM utility might require a valid key to actually
-// perform requests; however, for local unit tests without network calls, a placeholder is sufficient
-// as long as the LLM utility doesn't fail on initialization with an invalid key.
-const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") || "dummy-api-key-for-tests";
+// Assume a dummy API key for testing purposes.
+// In a real setup, this would come from Deno.env.get("GEMINI_API_KEY") or a secure config.
+const DUMMY_GEMINI_API_KEY = "dummy-api-key-for-tests";
 
 Deno.test("MilestoneTrackerConcept - Actions and Queries", async (t) => {
   const [db, client] = await testDb();
-  const milestoneTracker = new MilestoneTrackerConcept(db, GEMINI_API_KEY);
+  const milestoneTracker = new MilestoneTrackerConcept(db, DUMMY_GEMINI_API_KEY);
 
   const userAlice = "user:alice" as ID;
   const userBob = "user:bob" as ID;
@@ -196,7 +191,7 @@ Deno.test("MilestoneTrackerConcept - Actions and Queries", async (t) => {
 
     const goals = await milestoneTracker._getGoal({ user: userAlice });
     assertEquals(goals.length, 0, "Should find no active goal for Alice after closing");
-    // Verify it exists but is inactive by checking the raw collection
+    // Verify it exists but is inactive
     const inactiveGoal = await db.collection("MilestoneTracker.goals").findOne({ _id: aliceGoalId });
     assertExists(inactiveGoal, "Goal should still exist in DB");
     assertEquals(inactiveGoal.isActive, false, "Goal should be marked inactive");
@@ -220,12 +215,17 @@ Deno.test("MilestoneTrackerConcept - Actions and Queries", async (t) => {
 
   await t.step("completeStep: Fails if goal associated with step is not active", async () => {
     console.log("--- Test: completeStep (inactive goal) ---");
-    // Create a new goal, add a step, close the goal, then try to complete the step.
+    // Alice's goal (aliceGoalId) is now inactive. Her step (aliceStep1Id) is associated with it.
+    // Try to complete a step associated with an inactive goal (if it was incomplete)
+    // First, add a new step to Alice's *inactive* goal (this action should not be allowed per concept, but for testing, let's assume it *could* somehow exist)
+    // No, the precondition of addStep already prevents this.
+    // The previous completion of aliceStep1Id already succeeded.
+    // Let's create a new goal, add a step, close the goal, then try to complete the step.
     const userCharlie = "user:charlie" as ID;
     const charlieGoalResult = await milestoneTracker.createGoal({ user: userCharlie, description: "Learn Cooking" });
     const charlieGoalId = (charlieGoalResult as { goal: ID }).goal;
     const charlieStepResult = await milestoneTracker.addStep({ goal: charlieGoalId, description: "Chop onions" });
-    const charlieStepId = (chlieStepResult as { step: ID }).step;
+    const charlieStepId = (charlieStepResult as { step: ID }).step;
 
     await milestoneTracker.closeGoal({ goal: charlieGoalId }); // Now goal is inactive
     const result = await milestoneTracker.completeStep({ step: charlieStepId });

@@ -1,11 +1,8 @@
-[@implementation](MilestoneTracker.md)
-[@gemini-llm](../../../src/utils/gemini-llm.ts)
-
-[@testing-concepts](../../background/testing-concepts.md)
-
-# test: MilestoneTracker
-
-# response:
+---
+timestamp: 'Thu Oct 16 2025 23:01:25 GMT-0400 (Eastern Daylight Time)'
+parent: '[[../20251016_230125.d21b7ff4.md]]'
+content_id: 80eac183c665c4245ea3b41ec5370d780ad25d51f134e62bc3a1146b3eac5112
+---
 
 # file: src/concepts/MilestoneTracker/MilestoneTrackerConcept.test.ts
 

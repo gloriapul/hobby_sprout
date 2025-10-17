@@ -1,13 +1,3 @@
-[@implementation](PasswordAuthentication.md)
-
-[@testing-concepts](../../background/testing-concepts.md)
-
-# test: PasswordAuthentication
-# response:
-
-# file: src/PasswordAuthentication/PasswordAuthenticationConcept.test.ts
-
-```typescript
 import { assertEquals } from "@std/assert";
 import { testDb } from "@utils/database.ts";
 import PasswordAuthenticationConcept from "./PasswordAuthenticationConcept.ts";
@@ -148,4 +138,3 @@ Deno.test("Password Authentication - Failed Authentication", async () => {
     await client.close();
   }
 });
-```

@@ -61,7 +61,7 @@
 import { Collection, Db } from "mongodb";
 import { Empty, ID } from "@utils/types.ts";
 import { freshID } from "@utils/database.ts";
-import { GeminiLLM } from "@utils/llm.ts"; // Assuming this utility exists and returns parsed JSON
+import { GeminiLLM, Config as GeminiLLMConfig } from "@utils/gemini-llm.ts"; // Import Config as well
 
 // Declare collection prefix using concept name
 const PREFIX = "MilestoneTracker" + ".";
@@ -110,10 +110,12 @@ export default class MilestoneTrackerConcept {
   private steps: Collection<StepDoc>;
   private llm: GeminiLLM; // LLM is an internal utility, not an action argument
 
-  constructor(private readonly db: Db) {
+  // Modified constructor to accept the Gemini API key
+  constructor(private readonly db: Db, geminiApiKey: string) {
     this.goals = this.db.collection(PREFIX + "goals");
     this.steps = this.db.collection(PREFIX + "steps");
-    this.llm = new GeminiLLM(); // Initialize LLM instance
+    // Initialize LLM instance with the API key
+    this.llm = new GeminiLLM({ apiKey: geminiApiKey });
   }
 
   /**
@@ -197,7 +199,8 @@ export default class MilestoneTrackerConcept {
         Return the steps as a JSON array of strings, where each string is a step description.
         Example: ["Step 1 description", "Step 2 description"]`;
 
-      const llmOutput = await this.llm.generateText(llmPrompt);
+      // Call the new executeLLM method
+      const llmOutput = await this.llm.executeLLM(llmPrompt);
       const stepDescriptions: string[] = JSON.parse(llmOutput);
 
       if (!Array.isArray(stepDescriptions) || stepDescriptions.some(d => typeof d !== 'string')) {

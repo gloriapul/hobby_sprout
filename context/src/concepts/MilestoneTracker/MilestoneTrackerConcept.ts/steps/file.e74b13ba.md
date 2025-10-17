@@ -1,7 +1,228 @@
+---
+timestamp: 'Thu Oct 16 2025 22:42:09 GMT-0400 (Eastern Daylight Time)'
+parent: '[[../20251016_224209.60610810.md]]'
+content_id: e74b13ba093d26ccef4322ca2c60a5feedc5a9c49c6cbd0aefc062812fb6f2d7
+---
+
+# file: src/concepts/MilestoneTracker/MilestoneTrackerConcept.ts
+
+```typescript
+import { Collection, Db } from "npm:mongodb";
+import { GeminiLLM } from "@utils/gemini-llm.ts";
+
+interface Step {
+  description: string;
+  start: Date;
+  completion?: Date;
+  isComplete: "complete" | "incomplete";
+}
+
+interface MilestoneDoc {
+  goal: string;
+  isActive: boolean;
+  steps: Step[];
+}
+
+interface ErrorResponse {
+  error: string;
+}
+
+interface SuccessGoalResponse {
+  goal: string;
+}
+
+interface SuccessStepsResponse {
+  steps: string[];
+}
+
+type SetGoalResponse = SuccessGoalResponse | ErrorResponse;
+type StepsResponse = SuccessStepsResponse | ErrorResponse;
+type EmptyResponse = Record<string, never> | ErrorResponse;
+
+export default class MilestoneTrackerConcept {
+  private collection: Collection<MilestoneDoc>;
+
+  constructor(db: Db) {
+    this.collection = db.collection<MilestoneDoc>("milestones");
+  }
+
+  async setGoal(args: { goal: string }): Promise<SetGoalResponse> {
+    const { goal } = args;
+
+    const existing = await this.collection.findOne({ goal });
+    if (existing) {
+      return { error: "Goal already exists" };
+    }
+
+    await this.collection.insertOne({
+      goal,
+      isActive: true,
+      steps: [],
+    });
+
+    return { goal };
+  }
+
+  async generateSteps(
+    args: { goal: string; llm: GeminiLLM },
+  ): Promise<StepsResponse> {
+    const { goal, llm } = args;
+    if (!goal.trim()) {
+      return { error: "Goal cannot be empty" };
+    }
+
+    const milestone = await this.collection.findOne({ goal });
+    if (!milestone) {
+      return { error: "Goal not found" };
+    }
+
+    try {
+      const prompt = `
+        You are a helpful AI assistant that creates a recommended plan of clear steps for people looking to work on a hobby.
+
+        Create a structured step-by-step plan for this goal: "${goal}"
+
+        Response Requirements:
+        1. Return ONLY a single-line JSON array of strings
+        2. Each string should be a specific, complete, measurable, and actionable step
+        3. Step must be relevant to the goal and feasible for an average person, should not be overly ambitious or vague
+        4. Only contain necessary steps to achieve the goal, avoid filler steps and be mindful of number of steps generated
+        5. Steps must be in logical order
+        6. Do NOT use line breaks or extra whitespace
+        7. Properly escape any quotes in the text
+        8. No step numbers or prefixes
+        9. No comments or explanations
+
+        Example response format:
+        ["Research camera settings and features","Practice taking photos in different lighting","Review and organize test shots"]
+
+        Return ONLY the JSON array, nothing else.`;
+
+      const response = await llm.executeLLM(prompt);
+
+      const match = response.match(/\[(.*)\]/);
+      if (!match) {
+        return { error: "Invalid response format" };
+      }
+
+      let steps: string[];
+      try {
+        steps = JSON.parse(`[${match[1]}]`);
+      } catch {
+        return { error: "Could not parse response" };
+      }
+
+      if (!Array.isArray(steps) || steps.length === 0) {
+        return { error: "No valid steps were generated" };
+      }
+
+      const stepsWithDates = steps.map((description) => ({
+        description,
+        start: new Date(),
+        isComplete: "incomplete" as const,
+      }));
+
+      await this.collection.updateOne(
+        { goal },
+        { $set: { steps: stepsWithDates } },
+      );
+
+      return { steps };
+    } catch (e) {
+      console.error("Failed to generate steps:", e);
+      return { error: "Failed to generate steps" };
+    }
+  }
+
+  async setSteps(args: { step: string }): Promise<StepsResponse> {
+    const { step } = args;
+    if (!step.trim()) {
+      return { error: "Step cannot be empty" };
+    }
+
+    const milestone = await this.collection.findOne({ isActive: true });
+    if (!milestone) {
+      return { error: "No active goal found" };
+    }
+
+    const newStep: Step = {
+      description: step,
+      start: new Date(),
+      isComplete: "incomplete",
+    };
+
+    await this.collection.updateOne(
+      { goal: milestone.goal },
+      { $push: { steps: newStep } },
+    );
+
+    return {
+      steps: [...milestone.steps.map((s: Step) => s.description), step],
+    };
+  }
+
+  async completeStep(args: { step: string }): Promise<StepsResponse> {
+    const { step } = args;
+    const milestone = await this.collection.findOne({
+      isActive: true,
+      "steps.description": step,
+      "steps.isComplete": "incomplete",
+    });
+
+    if (!milestone) {
+      return { error: "Step not found or already completed" };
+    }
+
+    await this.collection.updateOne(
+      {
+        goal: milestone.goal,
+        "steps.description": step,
+      },
+      {
+        $set: {
+          "steps.$.isComplete": "complete",
+          "steps.$.completion": new Date(),
+        },
+      },
+    );
+
+    const updatedMilestone = await this.collection.findOne({
+      goal: milestone.goal,
+    });
+    if (!updatedMilestone) {
+      return { error: "Failed to update milestone" };
+    }
+
+    if (
+      updatedMilestone.steps.every((s: Step) => s.isComplete === "complete")
+    ) {
+      await this.closeMilestones({});
+    }
+
+    return { steps: updatedMilestone.steps.map((s: Step) => s.description) };
+  }
+
+  async closeMilestones(_args: Record<string, never>): Promise<EmptyResponse> {
+    const milestone = await this.collection.findOne({ isActive: true });
+
+    if (!milestone) {
+      return { error: "No active milestone found" };
+    }
+
+    await this.collection.updateOne(
+      { goal: milestone.goal },
+      { $set: { isActive: false } },
+    );
+
+    return {};
+  }
+}
+
+
 import { Collection, Db } from "mongodb";
 import { Empty, ID } from "@utils/types.ts";
 import { freshID } from "@utils/database.ts";
-import { Config as GeminiLLMConfig, GeminiLLM } from "@utils/gemini-llm.ts"; // Import Config as well
+import { GeminiLLM } from "@utils/llm.ts"; // Assuming this utility exists and returns parsed JSON
 
 // Declare collection prefix using concept name
 const PREFIX = "MilestoneTracker" + ".";
@@ -10,14 +231,6 @@ const PREFIX = "MilestoneTracker" + ".";
 type User = ID;
 type Goal = ID; // ID for a specific goal document
 type Step = ID; // ID for a specific step document
-
-/**
- * Interface for LLM Service, to allow dependency injection for testing.
- * This allows us to substitute a mock service during tests.
- */
-export interface LLMService {
-  generateText(prompt: string): Promise<string>;
-}
 
 /**
  * Interface for a Goal document in MongoDB.
@@ -56,17 +269,12 @@ interface StepDoc {
 export default class MilestoneTrackerConcept {
   private goals: Collection<GoalDoc>;
   private steps: Collection<StepDoc>;
-  private llm: GeminiLLM | LLMService; // Can be either GeminiLLM or a mock service
+  private llm: GeminiLLM; // LLM is an internal utility, not an action argument
 
-  // Constructor accepts either a Gemini API key or an LLMService for testing
-  constructor(private readonly db: Db, llmConfig: string | LLMService) {
+  constructor(private readonly db: Db) {
     this.goals = this.db.collection(PREFIX + "goals");
     this.steps = this.db.collection(PREFIX + "steps");
-    // If string is provided, treat as API key and create GeminiLLM
-    // Otherwise use provided LLMService (for testing)
-    this.llm = typeof llmConfig === "string"
-      ? new GeminiLLM({ apiKey: llmConfig })
-      : llmConfig;
+    this.llm = new GeminiLLM(); // Initialize LLM instance
   }
 
   /**
@@ -91,10 +299,7 @@ export default class MilestoneTrackerConcept {
     // Check if an active goal already exists for this user
     const existingGoal = await this.goals.findOne({ user, isActive: true });
     if (existingGoal) {
-      return {
-        error:
-          `An active goal already exists for user ${user}. Please close it first.`,
-      };
+      return { error: `An active goal already exists for user ${user}. Please close it first.` };
     }
 
     const newGoalId = freshID();
@@ -110,11 +315,7 @@ export default class MilestoneTrackerConcept {
       return { goal: newGoalId };
     } catch (e) {
       console.error("Error creating goal:", e);
-      return {
-        error: `Failed to create goal: ${
-          e instanceof Error ? e.message : String(e)
-        }`,
-      };
+      return { error: `Failed to create goal: ${e instanceof Error ? e.message : String(e)}` };
     }
   }
 
@@ -145,36 +346,23 @@ export default class MilestoneTrackerConcept {
     }
 
     // Check if steps already exist for this goal
-    const existingStepsCount = await this.steps.countDocuments({
-      goalId: goal,
-    });
+    const existingStepsCount = await this.steps.countDocuments({ goalId: goal });
     if (existingStepsCount > 0) {
-      return {
-        error:
-          `Steps already exist for goal ${goal}. Cannot generate new ones.`,
-      };
+      return { error: `Steps already exist for goal ${goal}. Cannot generate new ones.` };
     }
 
     try {
       // Formulate a more detailed prompt for the LLM using the goal description
-      const llmPrompt =
-        `Given the goal "${targetGoal.description}", generate a list of actionable steps to achieve it.
+      const llmPrompt = `Given the goal "${targetGoal.description}", generate a list of actionable steps to achieve it.
         Consider the following additional context: "${prompt}".
         Return the steps as a JSON array of strings, where each string is a step description.
         Example: ["Step 1 description", "Step 2 description"]`;
 
-      // Call the LLM to generate steps
       const llmOutput = await this.llm.generateText(llmPrompt);
       const stepDescriptions: string[] = JSON.parse(llmOutput);
 
-      if (
-        !Array.isArray(stepDescriptions) ||
-        stepDescriptions.some((d) => typeof d !== "string")
-      ) {
-        return {
-          error:
-            "LLM returned invalid step format. Expected a JSON array of strings.",
-        };
+      if (!Array.isArray(stepDescriptions) || stepDescriptions.some(d => typeof d !== 'string')) {
+        return { error: "LLM returned invalid step format. Expected a JSON array of strings." };
       }
 
       const newStepDocs: StepDoc[] = stepDescriptions.map((desc) => ({
@@ -193,10 +381,10 @@ export default class MilestoneTrackerConcept {
     } catch (e: unknown) {
       console.error("Error generating steps with LLM:", e);
       let llmErrorMessage = "LLM generation failed.";
-      if (typeof e === "object" && e !== null && "message" in e) {
-        llmErrorMessage = `Failed to generate steps: ${e.message}`;
-      } else if (typeof e === "string") {
-        llmErrorMessage = `Failed to generate steps: ${e}`;
+      if (typeof e === 'object' && e !== null && 'message' in e) {
+          llmErrorMessage = `Failed to generate steps: ${e.message}`;
+      } else if (typeof e === 'string') {
+          llmErrorMessage = `Failed to generate steps: ${e}`;
       }
       return { error: llmErrorMessage };
     }
@@ -240,11 +428,7 @@ export default class MilestoneTrackerConcept {
       return { step: newStepId };
     } catch (e) {
       console.error("Error adding step:", e);
-      return {
-        error: `Failed to add step: ${
-          e instanceof Error ? e.message : String(e)
-        }`,
-      };
+      return { error: `Failed to add step: ${e instanceof Error ? e.message : String(e)}` };
     }
   }
 
@@ -255,9 +439,7 @@ export default class MilestoneTrackerConcept {
    *
    * **effects**: Sets `isComplete` of `step` to `true`; sets `completion` date to current date.
    */
-  async completeStep(
-    { step }: { step: Step },
-  ): Promise<Empty | { error: string }> {
+  async completeStep({ step }: { step: Step }): Promise<Empty | { error: string }> {
     const targetStep = await this.steps.findOne({ _id: step });
     if (!targetStep) {
       return { error: `Step ${step} not found.` };
@@ -266,15 +448,9 @@ export default class MilestoneTrackerConcept {
       return { error: `Step ${step} is already complete.` };
     }
 
-    const targetGoal = await this.goals.findOne({
-      _id: targetStep.goalId,
-      isActive: true,
-    });
+    const targetGoal = await this.goals.findOne({ _id: targetStep.goalId, isActive: true });
     if (!targetGoal) {
-      return {
-        error:
-          `Goal associated with step ${step} is not active. Cannot complete step.`,
-      };
+      return { error: `Goal associated with step ${step} is not active. Cannot complete step.` };
     }
 
     try {
@@ -285,11 +461,7 @@ export default class MilestoneTrackerConcept {
       return {};
     } catch (e) {
       console.error("Error completing step:", e);
-      return {
-        error: `Failed to complete step: ${
-          e instanceof Error ? e.message : String(e)
-        }`,
-      };
+      return { error: `Failed to complete step: ${e instanceof Error ? e.message : String(e)}` };
     }
   }
 
@@ -300,9 +472,7 @@ export default class MilestoneTrackerConcept {
    *
    * **effects**: Sets `isActive` of `goal` to `false`.
    */
-  async closeGoal(
-    { goal }: { goal: Goal },
-  ): Promise<Empty | { error: string }> {
+  async closeGoal({ goal }: { goal: Goal }): Promise<Empty | { error: string }> {
     const targetGoal = await this.goals.findOne({ _id: goal, isActive: true });
     if (!targetGoal) {
       return { error: `Goal ${goal} not found or is not active.` };
@@ -313,11 +483,7 @@ export default class MilestoneTrackerConcept {
       return {};
     } catch (e) {
       console.error("Error closing goal:", e);
-      return {
-        error: `Failed to close goal: ${
-          e instanceof Error ? e.message : String(e)
-        }`,
-      };
+      return { error: `Failed to close goal: ${e instanceof Error ? e.message : String(e)}` };
     }
   }
 
@@ -339,11 +505,7 @@ export default class MilestoneTrackerConcept {
     if (!goalDoc) {
       return []; // Return empty array if no active goal found
     }
-    return [{
-      id: goalDoc._id,
-      description: goalDoc.description,
-      isActive: goalDoc.isActive,
-    }];
+    return [{ id: goalDoc._id, description: goalDoc.description, isActive: goalDoc.isActive }];
   }
 
   /**
@@ -388,8 +550,7 @@ export default class MilestoneTrackerConcept {
   }: {
     goal: Goal;
   }): Promise<{ id: Step; description: string; start: Date }[]> {
-    const stepsDocs = await this.steps.find({ goalId: goal, isComplete: false })
-      .toArray();
+    const stepsDocs = await this.steps.find({ goalId: goal, isComplete: false }).toArray();
     return stepsDocs.map((s) => ({
       id: s._id,
       description: s.description,
@@ -408,12 +569,9 @@ export default class MilestoneTrackerConcept {
     goal,
   }: {
     goal: Goal;
-  }): Promise<
-    { id: Step; description: string; start: Date; completion: Date }[]
-  > {
-    const stepsDocs = await this.steps.find({ goalId: goal, isComplete: true })
-      .toArray();
-    return stepsDocs.filter((s) => s.completion !== undefined).map((s) => ({ // Filter for completed steps with a completion date
+  }): Promise<{ id: Step; description: string; start: Date; completion: Date }[]> {
+    const stepsDocs = await this.steps.find({ goalId: goal, isComplete: true }).toArray();
+    return stepsDocs.filter(s => s.completion !== undefined).map((s) => ({ // Filter for completed steps with a completion date
       id: s._id,
       description: s.description,
       start: s.start,
@@ -421,3 +579,8 @@ export default class MilestoneTrackerConcept {
     }));
   }
 }
+
+
+
+# question: analyze the difference between the two implementations
+```
