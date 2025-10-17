@@ -1,45 +1,44 @@
-[@concept-design-overview](../../background/concept-design-overview.md)
+---
+timestamp: 'Fri Oct 17 2025 00:10:41 GMT-0400 (Eastern Daylight Time)'
+parent: '[[../20251017_001041.2d46795f.md]]'
+content_id: 614bbc065dba93fe2b76ff3b527189c460bed45792df2c2685f77c5545cb2680
+---
 
-[@concept-specifications](../../background/concept-specifications.md)
+# concept: UserProfile \[User]
 
-[@implementing-concepts](../../background/implementing-concepts.md)
-
-# implement: UserProfile 
-
-# response:
-
-*   **concept**: UserProfile \[User]
-*   **purpose**: allow users to share their personal info
-*   **principle**: after setting a name, hobby, and image for a user, other users can see them
-*   **state**:
-    *   A set of `Users` with
-        *   an `active` status of type `Boolean`
-        *   a `displayname` of type `String`
-        *   a `profile` of type `Image`
-    *   A set of `UserHobbies` with
-        *   a `user` of type `User`
-        *   a `hobby` of type `String`
-        *   an `active` status of type `Boolean`
-*   **actions**:
-    *   `setName (user: User, displayname: String): ()`
-        *   **requires**: the user to exist in the set of users.
-        *   **effects**: sets the user's `displayname` to the provided `displayname`.
-    *   `setImage (user: User, image: Image): ()`
-        *   **requires**: the user to exist in the set of users.
-        *   **effects**: sets the user's `profile` image to the provided `image`.
-    *   `setHobby (user: User, hobby: String): ()`
-        *   **requires**: the user to exist in the set of `Users`.
-            The `hobby` must not already be active for the specified `user`.
-            (Implicitly, the `hobby` must also be part of a preset list of available hobbies on the app).
-        *   **effects**: If no `UserHobby` record exists for the given `user` and `hobby`, a new one is created and marked as `active`. If a `UserHobby` record exists but is `inactive`, it is updated to `active`.
-    *   `closeHobby (user: User, hobby: String): ()`
-        *   **requires**: the user to exist in the set of `Users`.
-            A `UserHobby` record for the specified `user` and `hobby` must exist and be `active`.
-        *   **effects**: sets the `active` status of the specified `UserHobby` record to `false` (inactive).
-    *   `closeProfile (user: User): ()`
-        *   **requires**: the user to exist in the set of `Users`.
-        *   **effects**: sets the `active` status of the user's profile to `false`, indicating the profile is closed.
-
+* **purpose**: allow users to share their personal info
+* **principle**: after setting a name, hobby, and image for a user, other users can see them
+* **state**:
+  * A set of `Users` with
+    * an `active` status of type `Boolean`
+    * a `displayname` of type `String`
+    * a `profile` of type `Image`
+  * A set of `UserHobbies` with
+    * a `user` of type `User`
+    * a `hobby` of type `String`
+    * an `active` status of type `Boolean`
+* **actions**:
+  * `createProfile (user: User): ()`
+    * **requires**: no profile for the given `user` already exists in this concept's state.
+    * **effects**: creates a new user profile record for the given `user` with an `active` status of true, and no initial display name or profile image. This action enables subsequent profile modifications.
+  * `setName (user: User, displayname: String): ()`
+    * **requires**: the user to exist in the set of users managed by this concept.
+    * **effects**: sets the user's `displayname` to the provided `displayname`.
+  * `setImage (user: User, image: Image): ()`
+    * **requires**: the user to exist in the set of users managed by this concept.
+    * **effects**: sets the user's `profile` image to the provided `image`.
+  * `setHobby (user: User, hobby: String): ()`
+    * **requires**: the user to exist in the set of `Users`.
+      The `hobby` must not already be active for the specified `user`.
+      (Implicitly, the `hobby` must also be part of a preset list of available hobbies on the app).
+    * **effects**: If no `UserHobby` record exists for the given `user` and `hobby`, a new one is created and marked as `active`. If a `UserHobby` record exists but is `inactive`, it is updated to `active`.
+  * `closeHobby (user: User, hobby: String): ()`
+    * **requires**: the user to exist in the set of `Users`.
+      A `UserHobby` record for the specified `user` and `hobby` must exist and be `active`.
+    * **effects**: sets the `active` status of the specified `UserHobby` record to `false` (inactive).
+  * `closeProfile (user: User): ()`
+    * **requires**: the user to exist in the set of `Users`.
+    * **effects**: sets the `active` status of the user's profile to `false`, indicating the profile is closed.
 
 ```typescript
 // file: src/concepts/UserProfileConcept.ts
@@ -71,16 +70,15 @@ interface UserProfileDoc {
 
 /**
  * State:
- * a set of Hobbies with
- *   an active status Boolean
- *
- * This is interpreted as a collection representing the relationship between a user and a specific hobby,
- * along with whether that hobby is currently active for that user.
+ * a set of UserHobbies with
+ *   a user of type User
+ *   a hobby of type String
+ *   an active status of type Boolean
  */
 interface UserHobbyDoc {
   _id: ID; // Unique ID for this specific user-hobby relationship record
-  userId: User; // The ID of the user
-  hobby: string; // The name of the hobby (String as per spec)
+  userId: User; // The ID of the user (links to UserProfileDoc._id)
+  hobby: string; // The name of the hobby
   active: boolean; // True if the hobby is active for the user, false if closed
 }
 
@@ -93,16 +91,12 @@ export default class UserProfileConcept {
   private userProfiles: Collection<UserProfileDoc>;
   private userHobbies: Collection<UserHobbyDoc>;
 
-  // A preset list of available hobbies on the app is mentioned in the spec for 'setHobby'.
-  // This concept does not manage that list itself, assuming it's an external constraint
-  // or managed by another concept. The 'hobby' argument is treated as a string name.
-
   constructor(private readonly db: Db) {
     this.userProfiles = this.db.collection(PREFIX + "userProfiles");
     this.userHobbies = this.db.collection(PREFIX + "userHobbies");
   }
 
-  // --- Initializer Action (Assumed to be called by an integrating concept like UserAuthentication) ---
+  // --- Actions ---
 
   /**
    * createProfile (user: User): Empty
@@ -113,8 +107,10 @@ export default class UserProfileConcept {
    * and no initial display name or profile image. This action enables subsequent profile modifications.
    */
   async createProfile({ user }: { user: User }): Promise<Empty | { error: string }> {
+    console.log(`Action: createProfile(${user})`);
     const existingProfile = await this.userProfiles.findOne({ _id: user });
     if (existingProfile) {
+      console.log(`  Error: Profile for user ${user} already exists.`);
       return { error: `Profile for user ${user} already exists.` };
     }
 
@@ -124,10 +120,9 @@ export default class UserProfileConcept {
       displayname: undefined,
       profile: undefined,
     });
+    console.log(`  Effect: Profile for ${user} created successfully.`);
     return {};
   }
-
-  // --- Specified Actions ---
 
   /**
    * setName (user: User, displayname: String): Empty
@@ -137,14 +132,17 @@ export default class UserProfileConcept {
    * **effects** sets the user's display name to the `displayname` provided.
    */
   async setName({ user, displayname }: { user: User; displayname: string }): Promise<Empty | { error: string }> {
+    console.log(`Action: setName(${user}, "${displayname}")`);
     const result = await this.userProfiles.updateOne(
       { _id: user },
       { $set: { displayname: displayname } },
     );
 
     if (result.matchedCount === 0) {
+      console.log(`  Error: User profile for ${user} not found.`);
       return { error: `User profile for ${user} not found.` };
     }
+    console.log(`  Effect: Display name for ${user} set to "${displayname}".`);
     return {};
   }
 
@@ -156,14 +154,17 @@ export default class UserProfileConcept {
    * **effects** sets the user's profile image to the `image` (e.g., URL or base64 string) provided.
    */
   async setImage({ user, image }: { user: User; image: Image }): Promise<Empty | { error: string }> {
+    console.log(`Action: setImage(${user}, "${image}")`);
     const result = await this.userProfiles.updateOne(
       { _id: user },
       { $set: { profile: image } },
     );
 
     if (result.matchedCount === 0) {
+      console.log(`  Error: User profile for ${user} not found.`);
       return { error: `User profile for ${user} not found.` };
     }
+    console.log(`  Effect: Profile image for ${user} set to "${image}".`);
     return {};
   }
 
@@ -178,8 +179,10 @@ export default class UserProfileConcept {
    *             If the hobby exists but is inactive, it is updated to active.
    */
   async setHobby({ user, hobby }: { user: User; hobby: string }): Promise<Empty | { error: string }> {
+    console.log(`Action: setHobby(${user}, "${hobby}")`);
     const userProfile = await this.userProfiles.findOne({ _id: user });
     if (!userProfile) {
+      console.log(`  Error: User profile for ${user} not found.`);
       return { error: `User profile for ${user} not found.` };
     }
 
@@ -189,6 +192,7 @@ export default class UserProfileConcept {
     if (existingUserHobby) {
       if (existingUserHobby.active) {
         // Requirement: "for hobby to not already be active"
+        console.log(`  Error: Hobby '${hobby}' is already active for user ${user}.`);
         return { error: `Hobby '${hobby}' is already active for user ${user}.` };
       } else {
         // Effect: "marks hobby from inactive to active if already in set"
@@ -196,6 +200,7 @@ export default class UserProfileConcept {
           { _id: existingUserHobby._id },
           { $set: { active: true } },
         );
+        console.log(`  Effect: Hobby '${hobby}' reactivated for user ${user}.`);
       }
     } else {
       // Effect: "adds the user's hobby ... to set of hobbies and marks it as active"
@@ -205,6 +210,7 @@ export default class UserProfileConcept {
         hobby: hobby,
         active: true,
       });
+      console.log(`  Effect: Hobby '${hobby}' added as active for user ${user}.`);
     }
 
     return {};
@@ -219,8 +225,10 @@ export default class UserProfileConcept {
    * **effects** sets the user's `hobby` to inactive.
    */
   async closeHobby({ user, hobby }: { user: User; hobby: string }): Promise<Empty | { error: string }> {
+    console.log(`Action: closeHobby(${user}, "${hobby}")`);
     const userProfile = await this.userProfiles.findOne({ _id: user });
     if (!userProfile) {
+      console.log(`  Error: User profile for ${user} not found.`);
       return { error: `User profile for ${user} not found.` };
     }
 
@@ -236,12 +244,16 @@ export default class UserProfileConcept {
       // 2. The hobby exists but is already inactive.
       const userHobby = await this.userHobbies.findOne({ userId: user, hobby: hobby });
       if (!userHobby) {
+        console.log(`  Error: Hobby '${hobby}' not found for user ${user}.`);
         return { error: `Hobby '${hobby}' not found for user ${user}.` };
       } else if (!userHobby.active) {
+        console.log(`  Error: Hobby '${hobby}' is already inactive for user ${user}.`);
         return { error: `Hobby '${hobby}' is already inactive for user ${user}.` };
       }
+      console.log(`  Error: Failed to close hobby '${hobby}' for user ${user} (unknown reason).`);
       return { error: `Failed to close hobby '${hobby}' for user ${user} (unknown reason).` }; // Fallback
     }
+    console.log(`  Effect: Hobby '${hobby}' set to inactive for user ${user}.`);
     return {};
   }
 
@@ -253,18 +265,21 @@ export default class UserProfileConcept {
    * **effects** sets the user's account `active` status to false, indicating the profile is closed.
    */
   async closeProfile({ user }: { user: User }): Promise<Empty | { error: string }> {
+    console.log(`Action: closeProfile(${user})`);
     const result = await this.userProfiles.updateOne(
       { _id: user },
       { $set: { active: false } },
     );
 
     if (result.matchedCount === 0) {
+      console.log(`  Error: User profile for ${user} not found.`);
       return { error: `User profile for ${user} not found.` };
     }
+    console.log(`  Effect: Profile for user ${user} set to inactive.`);
     return {};
   }
 
-  // --- Concept Queries (for retrieving information, fulfilling the "principle" implicitly) ---
+  // --- Concept Queries ---
 
   /**
    * _getUserProfile (user: User): (profile: UserProfileDoc)
@@ -275,10 +290,13 @@ export default class UserProfileConcept {
    *             for the specified user. Returns an array containing one profile document.
    */
   async _getUserProfile({ user }: { user: User }): Promise<UserProfileDoc[] | { error: string }> {
+    console.log(`Query: _getUserProfile(${user})`);
     const profile = await this.userProfiles.findOne({ _id: user });
     if (!profile) {
+      console.log(`  Error: User profile for ${user} not found.`);
       return { error: `User profile for ${user} not found.` };
     }
+    console.log(`  Result: Found profile for ${user}.`);
     return [profile]; // Queries return an array of dictionaries
   }
 
@@ -291,11 +309,14 @@ export default class UserProfileConcept {
    *             including their name and active status. Returns an array of hobby dictionaries.
    */
   async _getUserHobbies({ user }: { user: User }): Promise<{ hobby: string, active: boolean }[] | { error: string }> {
+    console.log(`Query: _getUserHobbies(${user})`);
     const userProfile = await this.userProfiles.findOne({ _id: user });
     if (!userProfile) {
+      console.log(`  Error: User profile for ${user} not found.`);
       return { error: `User profile for ${user} not found.` };
     }
     const hobbies = await this.userHobbies.find({ userId: user }).toArray();
+    console.log(`  Result: Found ${hobbies.length} hobbies for ${user}.`);
     // Map to the specified return structure
     return hobbies.map(doc => ({ hobby: doc.hobby, active: doc.active }));
   }
@@ -309,11 +330,14 @@ export default class UserProfileConcept {
    *             Returns an array of dictionaries, each with a 'hobby' field.
    */
   async _getActiveHobbies({ user }: { user: User }): Promise<{ hobby: string }[] | { error: string }> {
+    console.log(`Query: _getActiveHobbies(${user})`);
     const userProfile = await this.userProfiles.findOne({ _id: user });
     if (!userProfile) {
+      console.log(`  Error: User profile for ${user} not found.`);
       return { error: `User profile for ${user} not found.` };
     }
     const activeHobbies = await this.userHobbies.find({ userId: user, active: true }).toArray();
+    console.log(`  Result: Found ${activeHobbies.length} active hobbies for ${user}.`);
     // Map to the specified return structure
     return activeHobbies.map(doc => ({ hobby: doc.hobby }));
   }

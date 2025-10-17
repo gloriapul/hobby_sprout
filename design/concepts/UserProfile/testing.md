@@ -1,3 +1,13 @@
+[@implementation](UserProfile.md)
+
+[@testing-concepts](../../background/testing-concepts.md)
+
+# test: UserProfile
+# response:
+
+# file: src/concepts/UserProfileConcept.test.ts
+
+```typescript
 import { assertEquals } from "jsr:@std/assert";
 import { testDb } from "@utils/database.ts";
 import UserProfileConcept from "./UserProfileConcept.ts";
@@ -148,3 +158,4 @@ Deno.test("Principle: Profile lifecycle management", async () => {
     await client.close();
   }
 });
+```
