@@ -1,7 +1,8 @@
 import { Collection, Db } from "mongodb";
 import { Empty, ID } from "@utils/types.ts";
 import { freshID } from "@utils/database.ts";
-import { Config as GeminiLLMConfig, GeminiLLM } from "@utils/gemini-llm.ts"; // Import Config as well
+import { GenerativeModel, GoogleGenerativeAI } from "@google/generative-ai";
+import { load } from "@std/dotenv";
 
 // Declare collection prefix using concept name
 const PREFIX = "MilestoneTracker" + ".";
@@ -10,14 +11,6 @@ const PREFIX = "MilestoneTracker" + ".";
 type User = ID;
 type Goal = ID; // ID for a specific goal document
 type Step = ID; // ID for a specific step document
-
-/**
- * Interface for LLM Service, to allow dependency injection for testing.
- * This allows us to substitute a mock service during tests.
- */
-export interface LLMService {
-  generateText(prompt: string): Promise<string>;
-}
 
 /**
  * Interface for a Goal document in MongoDB.
@@ -56,17 +49,34 @@ interface StepDoc {
 export default class MilestoneTrackerConcept {
   private goals: Collection<GoalDoc>;
   private steps: Collection<StepDoc>;
-  private llm: GeminiLLM | LLMService; // Can be either GeminiLLM or a mock service
+  private llmModel: GenerativeModel | null = null;
 
-  // Constructor accepts either a Gemini API key or an LLMService for testing
-  constructor(private readonly db: Db, llmConfig: string | LLMService) {
+  constructor(private readonly db: Db) {
     this.goals = this.db.collection(PREFIX + "goals");
     this.steps = this.db.collection(PREFIX + "steps");
-    // If string is provided, treat as API key and create GeminiLLM
-    // Otherwise use provided LLMService (for testing)
-    this.llm = typeof llmConfig === "string"
-      ? new GeminiLLM({ apiKey: llmConfig })
-      : llmConfig;
+  }
+
+  /**
+   * Initializes the LLM model with configuration from environment
+   */
+  async initializeLLM(): Promise<void> {
+    try {
+      // Load environment variables from .env file
+      const env = await load();
+      const apiKey = env["GEMINI_API_KEY"] || Deno.env.get("GEMINI_API_KEY");
+      const modelName = env["GEMINI_MODEL"] || "gemini-pro";
+
+      if (!apiKey) {
+        throw new Error("GEMINI_API_KEY not found in environment or .env file");
+      }
+
+      const genAI = new GoogleGenerativeAI(apiKey);
+      this.llmModel = genAI.getGenerativeModel({ model: modelName });
+    } catch (error) {
+      console.warn("Failed to initialize LLM:", error);
+      this.llmModel = null;
+      throw error;
+    }
   }
 
   /**
@@ -163,9 +173,34 @@ export default class MilestoneTrackerConcept {
         Return the steps as a JSON array of strings, where each string is a step description.
         Example: ["Step 1 description", "Step 2 description"]`;
 
+      // Check if LLM is initialized
+      if (!this.llmModel) {
+        return {
+          error:
+            "LLM model not initialized. GEMINI_API_KEY might be missing or invalid.",
+        };
+      }
+
+      // Check if LLM is initialized
+      if (!this.llmModel) {
+        return {
+          error:
+            "LLM model not initialized. GEMINI_API_KEY might be missing or invalid.",
+        };
+      }
+
       // Call the LLM to generate steps
-      const llmOutput = await this.llm.generateText(llmPrompt);
-      const stepDescriptions: string[] = JSON.parse(llmOutput);
+      const result = await this.llmModel.generateContent(llmPrompt);
+      const responseText = result.response.text();
+
+      let stepDescriptions: string[];
+      try {
+        stepDescriptions = JSON.parse(responseText);
+      } catch (_parseError) {
+        return {
+          error: "Failed to parse LLM response as JSON array.",
+        };
+      }
 
       if (
         !Array.isArray(stepDescriptions) ||
