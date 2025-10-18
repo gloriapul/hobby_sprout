@@ -1,9 +1,8 @@
-[@implementation](UserProfile.md)
-
-[@testing-concepts](../../background/testing-concepts.md)
-
-# test: UserProfile
-# response:
+---
+timestamp: 'Sat Oct 18 2025 18:53:50 GMT-0400 (Eastern Daylight Time)'
+parent: '[[../20251018_185350.e383233e.md]]'
+content_id: d1c459bc98c5299482b96fe3e60f485904cfe741ac3a51ea5ed1d073f9cbca5d
+---
 
 # file: src/concepts/UserProfileConcept.test.ts
 

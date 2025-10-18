@@ -1,28 +1,25 @@
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "@std/assert";
 import { testDb } from "@utils/database.ts";
-import UserProfileConcept from "./UserProfileConcept.ts";
 import { ID } from "@utils/types.ts";
+import UserProfileConcept from "./UserProfileConcept.ts";
 
 const userA = "user:Alice" as ID;
 
-/**
- * Test 1: Basic Profile Creation and Info Management
- * Demonstrates creating a profile and setting basic information
- */
-Deno.test("Principle: Create profile and set basic information", async () => {
+Deno.test("Principle: User creates profile, adds personal information, and other users can see it", async () => {
   const [db, client] = await testDb();
   const profileConcept = new UserProfileConcept(db);
 
   try {
-    // 1. Create a new profile
+    console.log("1. Creating a new user profile");
     const createResult = await profileConcept.createProfile({ user: userA });
     assertEquals(
       "error" in createResult,
       false,
-      "Profile creation should succeed"
+      "Profile creation should succeed",
     );
+    console.log(`   ✓ Profile created successfully for user: ${userA}`);
 
-    // 2. Set display name
+    console.log("2. Setting display name for the profile");
     const setNameResult = await profileConcept.setName({
       user: userA,
       displayname: "HobbyEnthusiast",
@@ -30,50 +27,58 @@ Deno.test("Principle: Create profile and set basic information", async () => {
     assertEquals(
       "error" in setNameResult,
       false,
-      "Setting display name should succeed"
+      "Setting display name should succeed",
     );
+    console.log(`   ✓ Display name set to "HobbyEnthusiast"`);
 
-    // 3. Set profile image
+    console.log("3. Setting profile image for the profile");
     const setImageResult = await profileConcept.setImage({
       user: userA,
-      image: "https://example.com/profile.jpg",
+      image: "https://example.com/profile.jpg", // use link to image address in real example
     });
     assertEquals(
       "error" in setImageResult,
       false,
-      "Setting profile image should succeed"
+      "Setting profile image should succeed",
     );
+    console.log(`   ✓ Profile image set successfully`);
 
-    // 4. Verify profile information
+    console.log("4. Verifying user profile information");
     const profileResult = await profileConcept._getUserProfile({ user: userA });
     assertEquals(
       "error" in profileResult,
       false,
-      "Getting profile should succeed"
+      "Getting profile should succeed",
     );
     if (!("error" in profileResult)) {
       assertEquals(profileResult[0].displayname, "HobbyEnthusiast");
       assertEquals(profileResult[0].profile, "https://example.com/profile.jpg");
       assertEquals(profileResult[0].active, true);
+      console.log(
+        `   ✓ Profile verification successful: User has correct name, image, and active status`,
+      );
+      console.log(
+        "5. Principle satisfied: User profile created and information is visible",
+      );
     }
   } finally {
     await client.close();
   }
 });
 
-/**
- * Test 2: Hobby Management
- * Demonstrates setting and closing hobbies for a user
- */
-Deno.test("Principle: Manage user hobbies", async () => {
+
+Deno.test("Action: setHobby/closeHobby manages hobby assignments and status", async () => {
   const [db, client] = await testDb();
   const profileConcept = new UserProfileConcept(db);
 
   try {
-    // 1. Create profile for hobby management
-    await profileConcept.createProfile({ user: userA });
+    console.log("1. Creating a profile for hobby management");
 
-    // 2. Set a hobby
+    await profileConcept.createProfile({ user: userA });
+    console.log(`   ✓ Profile created successfully for user: ${userA}`);
+
+    console.log("2. Adding a hobby to the user profile"); // could be determined from quiz in real example
+
     const setHobbyResult = await profileConcept.setHobby({
       user: userA,
       hobby: "Photography",
@@ -81,10 +86,13 @@ Deno.test("Principle: Manage user hobbies", async () => {
     assertEquals(
       "error" in setHobbyResult,
       false,
-      "Setting hobby should succeed"
+      "Setting hobby should succeed",
     );
+    console.log(`   ✓ Hobby "Photography" added successfully`);
 
-    // 3. Try to set same hobby again (should fail)
+    console.log(
+      "3. Testing hobby uniqueness - attempting to add same hobby again",
+    );
     const duplicateResult = await profileConcept.setHobby({
       user: userA,
       hobby: "Photography",
@@ -92,10 +100,16 @@ Deno.test("Principle: Manage user hobbies", async () => {
     assertEquals(
       "error" in duplicateResult,
       true,
-      "Setting duplicate hobby should fail"
+      "Setting duplicate hobby should fail",
     );
+    if ("error" in duplicateResult) {
+      console.log(
+        `   ✓ Duplicate hobby correctly rejected with error: "${duplicateResult.error}"`,
+      );
+    }
 
-    // 4. Close the hobby
+    console.log("4. Closing a hobby");
+
     const closeResult = await profileConcept.closeHobby({
       user: userA,
       hobby: "Photography",
@@ -103,46 +117,71 @@ Deno.test("Principle: Manage user hobbies", async () => {
     assertEquals(
       "error" in closeResult,
       false,
-      "Closing hobby should succeed"
+      "Closing hobby should succeed",
     );
-
+    console.log(`   ✓ Hobby "Photography" closed successfully`);
+    console.log(
+      "5. Action requirements satisfied: setHobby and closeHobby work correctly with proper validation",
+    );
   } finally {
     await client.close();
   }
 });
 
-/**
- * Test 3: Profile Lifecycle
- * Demonstrates creating and closing user profiles
- */
-Deno.test("Principle: Profile lifecycle management", async () => {
+Deno.test("Action: createProfile/closeProfile enforces profile uniqueness and lifecycle", async () => {
   const [db, client] = await testDb();
   const profileConcept = new UserProfileConcept(db);
 
   try {
-    // 1. Create a new profile
-    await profileConcept.createProfile({ user: userA });
+    console.log("1. Creating a user profile");
 
-    // 2. Verify cannot create duplicate profile
+    const createResult = await profileConcept.createProfile({ user: userA });
+    assertEquals(
+      "error" in createResult,
+      false,
+      "Profile creation should succeed",
+    );
+    console.log(`   ✓ Profile created successfully for user: ${userA}`);
+
+    console.log(
+      "2. Testing profile uniqueness - attempting to create duplicate profile",
+    );
+
     const duplicateResult = await profileConcept.createProfile({ user: userA });
     assertEquals(
       "error" in duplicateResult,
       true,
-      "Creating duplicate profile should fail"
+      "Creating duplicate profile should fail",
     );
+    if ("error" in duplicateResult) {
+      console.log(
+        `   ✓ Duplicate profile correctly rejected with error: "${duplicateResult.error}"`,
+      );
+    }
 
-    // 3. Close the profile
+    console.log("3. Closing the user profile");
+
     const closeResult = await profileConcept.closeProfile({ user: userA });
     assertEquals(
       "error" in closeResult,
       false,
-      "Closing profile should succeed"
+      "Closing profile should succeed",
     );
+    console.log(`   ✓ Profile closed successfully`);
 
-    // 4. Verify profile is inactive
+    console.log("4. Verifying profile inactive status");
+
     const profileResult = await profileConcept._getUserProfile({ user: userA });
     if (!("error" in profileResult)) {
-      assertEquals(profileResult[0].active, false, "Profile should be inactive");
+      assertEquals(
+        profileResult[0].active,
+        false,
+        "Profile should be inactive",
+      );
+      console.log(`   ✓ Profile verified as inactive`);
+      console.log(
+        "5. Action requirements satisfied: Profile creation enforces uniqueness and profiles can be closed",
+      );
     }
   } finally {
     await client.close();
