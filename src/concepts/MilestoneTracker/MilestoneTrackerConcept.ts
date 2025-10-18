@@ -166,12 +166,27 @@ export default class MilestoneTrackerConcept {
     }
 
     try {
-      // Formulate a more detailed prompt for the LLM using the goal description
-      const llmPrompt =
-        `Given the goal "${targetGoal.description}", generate a list of actionable steps to achieve it.
-        Consider the following additional context: "${prompt}".
-        Return the steps as a JSON array of strings, where each string is a step description.
-        Example: ["Step 1 description", "Step 2 description"]`;
+      // Formulate a detailed prompt for the LLM using the goal description
+      const llmPrompt = `
+        You are a helpful AI assistant that creates a recommended plan of clear steps for people looking to work on a hobby.
+
+        Create a structured step-by-step plan for this goal: "${targetGoal.description}"
+
+        Response Requirements:
+        1. Return ONLY a single-line JSON array of strings
+        2. Each string should be a specific, complete, measurable, and actionable step
+        3. Step must be relevant to the goal and feasible for an average person, should not be overly ambitious or vague
+        4. Only contain necessary steps to achieve the goal, avoid filler steps and be mindful of number of steps generated
+        5. Steps must be in logical order
+        6. Do NOT use line breaks or extra whitespace
+        7. Properly escape any quotes in the text
+        8. No step numbers or prefixes
+        9. No comments or explanations
+
+        Example response format:
+        ["Research camera settings and features","Practice taking photos in different lighting","Review and organize test shots"]
+
+        Return ONLY the JSON array, nothing else.`;
 
       // Check if LLM is initialized
       if (!this.llmModel) {
@@ -258,7 +273,7 @@ export default class MilestoneTrackerConcept {
 
     const targetGoal = await this.goals.findOne({ _id: goal, isActive: true });
     if (!targetGoal) {
-      return { error: `Goal ${goal} not found or is not active.` };
+      return { error: "Cannot add steps to an inactive goal." };
     }
 
     const newStepId = freshID();
