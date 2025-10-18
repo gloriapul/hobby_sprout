@@ -44,15 +44,17 @@ actions
 
 # file: src/PasswordAuthentication/PasswordAuthenticationConcept.ts
 
+# final 
+
 ```typescript
 import { Collection, Db } from "mongodb";
 import { ID } from "@utils/types.ts";
 import { freshID } from "@utils/database.ts";
 
-// Declare collection prefix, use concept name
+// Collection prefix to ensure namespace separation
 const PREFIX = "PasswordAuthentication" + ".";
 
-// Generic types of this concept
+// Generic types for this concept
 type User = ID;
 
 /**
@@ -65,18 +67,13 @@ type User = ID;
 interface UserDocument {
   _id: User; // The ID of the user, generic type
   username: string;
-  password: string; // Storing password directly as per request for this exercise
+  password: string; // Storing password directly, string was specified to be sufficient
 }
 
 /**
- * PasswordAuthenticationConcept is a reusable unit of user-facing functionality
- * that supports the authentication of users using a username and password.
- *
- * **Purpose:** associate usernames and passwords with user identities for authentication purposes,
+ * @concept PasswordAuthentication
+ * @purpose associate usernames and passwords with user identities for authentication purposes,
  * thereby limiting access to known users.
- *
- * **Principle:** If a user registers with a unique username and a password, they can subsequently
- * authenticate with that same username and password, and will consistently be treated as the same user.
  */
 export default class PasswordAuthenticationConcept {
   private users: Collection<UserDocument>;
@@ -88,59 +85,57 @@ export default class PasswordAuthenticationConcept {
   /**
    * register (username: String, password: String): (user: User)
    *
-   * **requires** no User with the given `username` already exists
+   * @requires no User with the given `username` already exists
    *
-   * **effects** creates a new User instance; sets that user's username to `username`;
+   * @effects creates a new User instance; sets that user's username to `username`;
    *             stores the `password` for that user; returns the ID of that newly created user as `user`
    */
-  public async register(
+  async register(
     { username, password }: { username: string; password: string },
   ): Promise<{ user: User } | { error: string }> {
-    // Precondition check: no User with the given `username` already exists
+    // no User with the given `username` already exists
     const existingUser = await this.users.findOne({ username });
     if (existingUser) {
-      // Precondition failed: return error as per overloaded action signature
       return { error: `Username '${username}' is already taken.` };
     }
 
-    // Effects: create a new User document
-    const newUser: User = freshID() as User; // Generate a fresh ID for the new user
+    // create a new User document
+    const newUser: User = freshID() as User; // generate a fresh ID for the new user
 
     await this.users.insertOne({
       _id: newUser,
       username,
-      password, // Store plain password as per the simplified requirement
+      password, // store password
     });
 
-    // Return the new User ID as per action signature
+    // new user created
     return { user: newUser };
   }
 
   /**
    * authenticate (username: String, password: String): (user: User)
    *
-   * **requires** a User with the given `username` exists AND the `password` matches the stored `password` for that user
+   * @requires a User with the given `username` exists AND the `password` matches the stored `password` for that user
    *
-   * **effects** returns the identifier of the authenticated `User` as `user`
+   * @effects returns the identifier of the authenticated `User` as `user`
    */
-  public async authenticate(
+  async authenticate(
     { username, password }: { username: string; password: string },
   ): Promise<{ user: User } | { error: string }> {
-    // Precondition check: a User with the given `username` exists
+    // a User with the given `username` exists
     const userDoc = await this.users.findOne({ username });
     if (!userDoc) {
-      // Precondition failed: user not found. Return generic error for security.
+      // user not found. Return generic error for security.
       return { error: "Invalid username or password." };
     }
 
-    // Precondition check: `password` matches the stored `password`
-    // Direct comparison for this exercise, NOT SECURE for production.
+    // `password` matches the stored `password`
     if (password !== userDoc.password) {
-      // Precondition failed: password mismatch. Return generic error for security.
+      // password mismatch. Return generic error for security.
       return { error: "Invalid username or password." };
     }
 
-    // Effects: return the authenticated User ID
+    // user successfully logged in
     return { user: userDoc._id };
   }
 }

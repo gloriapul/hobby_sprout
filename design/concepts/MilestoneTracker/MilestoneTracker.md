@@ -422,5 +422,3 @@ export default class MilestoneTrackerConcept {
   }
 }
 ```
-
-# question: take my concept and rework it as it should be based on assignment guidelines and the context you receive 

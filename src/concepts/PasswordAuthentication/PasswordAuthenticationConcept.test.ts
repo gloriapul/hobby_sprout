@@ -1,139 +1,183 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertExists, assertNotEquals } from "@std/assert";
 import { testDb } from "@utils/database.ts";
-import PasswordAuthenticationConcept from "./PasswordAuthenticationConcept.ts";
 import { ID } from "@utils/types.ts";
+import PasswordAuthenticationConcept from "./PasswordAuthenticationConcept.ts";
 
-type AuthResult = { user: ID } | { error: string };
-
-/**
- * Principle: If a user registers with a unique username and a password, they can subsequently
- * authenticate with those same credentials and will be recognized as the same user.
- *
- * Test demonstrates:
- * 1. A user can register with a unique username and password
- * 2. The same user can authenticate with those credentials
- * 3. Authentication returns the same user ID from registration
- */
-Deno.test("Password Authentication - Basic Flow", async () => {
+Deno.test("Principle: User registers with unique credentials and authenticates as the same user", async () => {
   const [db, client] = await testDb();
   const concept = new PasswordAuthenticationConcept(db);
 
   try {
-    // Register a new user
+    console.log("1. Creating a new user account with username and password");
+    // simple registration
     const username = "testuser";
     const password = "password123";
     const registerResult = await concept.register({
       username,
       password,
-    }) as AuthResult;
-    if ("error" in registerResult) {
-      throw new Error(registerResult.error);
-    }
-    const userId = registerResult.user;
+    });
 
-    // Authenticate with correct credentials
+    assertNotEquals(
+      "error" in registerResult,
+      true,
+      "Registration should not fail",
+    );
+    const { user: userId } = registerResult as { user: ID };
+    assertExists(userId, "User ID should be returned");
+    console.log(`   ✓ User registered successfully with ID: ${userId}`);
+
+    console.log("2. Authenticating with the same username and password");
+    // log in with same credentials
     const authResult = await concept.authenticate({
       username,
       password,
-    }) as AuthResult;
-    if ("error" in authResult) {
-      throw new Error(authResult.error);
-    }
-    assertEquals(authResult.user, userId);
+    });
+
+    assertNotEquals(
+      "error" in authResult,
+      true,
+      "Authentication should not fail",
+    );
+    const { user: authUserId } = authResult as { user: ID };
+
+    // verifying that authentication returns the same user, not logging into another account
+    assertEquals(
+      authUserId,
+      userId,
+      "Authentication should return the same user ID",
+    );
+    console.log(
+      `   ✓ User authenticated successfully with the same ID: ${authUserId}`,
+    );
+    console.log(
+      "3. Principle satisfied: User can register and authenticate as the same identity",
+    );
   } finally {
     await client.close();
   }
 });
 
-/**
- * Action: register(username, password)
- *
- * Requires: no User with the given username already exists
- *
- * Test verifies:
- * 1. First registration with a username succeeds
- * 2. Second registration with the same username fails
- * 3. Appropriate error message is returned
- */
-Deno.test("Password Authentication - Username Uniqueness", async () => {
+Deno.test("Action: register enforces username uniqueness", async () => {
   const [db, client] = await testDb();
   const concept = new PasswordAuthenticationConcept(db);
 
   try {
+    console.log("1. Testing username uniqueness requirement");
     const username = "uniqueuser";
     const password = "password123";
 
-    // Register first user
+    console.log(`   • Registering first user with username "${username}"`);
+    // registering the first example user
     const result1 = await concept.register({
       username,
       password,
-    }) as AuthResult;
-    if ("error" in result1) {
-      throw new Error(result1.error);
-    }
+    });
 
-    // Attempt to register same username
+    assertNotEquals(
+      "error" in result1,
+      true,
+      "First registration should succeed",
+    );
+    console.log("   ✓ First registration succeeded as expected");
+
+    console.log(
+      `   • Attempting to register a second user with the same username "${username}"`,
+    );
+    // should not allow another user to use the same username
     const result2 = await concept.register({
       username,
       password: "differentpassword",
-    }) as AuthResult;
-    if (!("error" in result2)) {
-      throw new Error("Expected error but got success");
-    }
-    const errorResult = result2 as { error: string };
-    assertEquals(errorResult.error, `Username '${username}' is already taken.`);
+    });
+
+    assertEquals(
+      "error" in result2,
+      true,
+      "Second registration with same username should fail",
+    );
+
+    // ensure correct error message
+    const { error } = result2 as { error: string };
+    assertEquals(
+      error,
+      `Username '${username}' is already taken.`,
+      "Should return username taken error message",
+    );
+    console.log(`   ✓ Second registration failed with error: "${error}"`);
+    console.log("2. Username uniqueness requirement satisfied");
   } finally {
     await client.close();
   }
 });
 
-/**
- * Action: authenticate(username, password)
- *
- * Requires: a User with the given username exists AND
- * the password matches the stored password for that user
- *
- * Test verifies:
- * 1. Authentication fails with incorrect password
- * 2. Authentication fails with non-existent username
- * 3. Error messages maintain security by not revealing specific cause
- */
-Deno.test("Password Authentication - Failed Authentication", async () => {
+Deno.test("Action: authentication validates credentials and returns appropriate errors", async () => {
   const [db, client] = await testDb();
   const concept = new PasswordAuthenticationConcept(db);
 
   try {
+    console.log("1. Testing authentication credential validation");
     const username = "secureuser";
     const password = "correctpassword";
 
-    // Register user
+    console.log(
+      `   • Registering test user "${username}" for authentication tests`,
+    );
+
     const registerResult = await concept.register({
       username,
       password,
-    }) as AuthResult;
-    if ("error" in registerResult) {
-      throw new Error(registerResult.error);
-    }
+    });
 
-    // Try wrong password
+    assertNotEquals(
+      "error" in registerResult,
+      true,
+      "Registration should succeed",
+    );
+    console.log("   ✓ Test user registered successfully");
+
+    console.log(
+      "   • Attempting to authenticate with correct username but wrong password",
+    );
+    // expected to fail
     const wrongPasswordResult = await concept.authenticate({
       username,
       password: "wrongpassword",
-    }) as AuthResult;
-    if (!("error" in wrongPasswordResult)) {
-      throw new Error("Expected error but got success");
-    }
-    assertEquals(wrongPasswordResult.error, "Invalid username or password.");
+    });
 
-    // Try non-existent username
+    assertEquals(
+      "error" in wrongPasswordResult,
+      true,
+      "Authentication with wrong password should fail",
+    );
+
+    assertEquals(
+      (wrongPasswordResult as { error: string }).error,
+      "Invalid username or password.",
+      "Should return generic error for wrong password",
+    );
+    console.log("   ✓ Authentication correctly failed with wrong password");
+
+    console.log("   • Attempting to authenticate with non-existent username");
+    // expected to fail
     const nonExistentResult = await concept.authenticate({
       username: "nonexistent",
       password,
-    }) as AuthResult;
-    if (!("error" in nonExistentResult)) {
-      throw new Error("Expected error but got success");
-    }
-    assertEquals(nonExistentResult.error, "Invalid username or password.");
+    });
+
+    assertEquals(
+      "error" in nonExistentResult,
+      true,
+      "Authentication with non-existent username should fail",
+    );
+
+    assertEquals(
+      (nonExistentResult as { error: string }).error,
+      "Invalid username or password.",
+      "Should return generic error for non-existent user",
+    );
+    console.log(
+      "   ✓ Authentication correctly failed with non-existent username",
+    );
+    console.log("2. Authentication validation requirements satisfied");
   } finally {
     await client.close();
   }
