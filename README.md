@@ -10,19 +10,19 @@ This directory contains the design documentation for each implemented concept:
 
 ## PasswordAuth
 - Purpose: Secure user authentication
-- [PasswordAuth Design](./PasswordAuth/PasswordAuth.md)
+- [PasswordAuthentication Design](design/concepts/PasswordAuthentication/PasswordAuthentication.md)
 
 ## UserProfile
 - Purpose: Manage user profile information and hobbies
-- [UserProfile Design](./UserProfile/UserProfile.md)
+- [UserProfile Design](design/concepts/UserProfile/UserProfile.md)
 
 ## QuizMatchmaker 
 - Purpose: Match users with hobbies based on personality
-- [QuizMatchmaker Design](./QuizMatchmaker/QuizMatchmaker.md)
+- [QuizMatchmaker Design](design/concepts/QuizMatchmaker/QuizMatchmaker.md)
 
 ## MilestoneTracker
 - Purpose: Track progress on hobby-related goals through steps
-- [MilestoneTracker Design](./MilestoneTracker/MilestoneTracker.md)
+- [MilestoneTracker Design](design/concepts/MilestoneTracker/MilestoneTracker.md)
 
 # Setup
 
