@@ -7,7 +7,7 @@
 # implement: PasswordAuthentication
 # response:
 
-*   **concept**: PasswordAuthentication \[User]
+*   **concept**: PasswordAuthentication
 *   **purpose**: Associate usernames and passwords with user identities for authentication purposes, thereby limiting access to known users.
 *   **principle**: If a user registers with a unique username and a password, they can subsequently authenticate with that same username and password, and will consistently be treated as the same user.
 *   **state**:
