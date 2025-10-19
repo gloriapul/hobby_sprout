@@ -13,253 +13,171 @@
 # file: src/quizmatchmaker/QuizMatchmakerConcept.test.ts
 
 ```typescript
-import { assertEquals, assertExists, assertNotEquals } from "jsr:@std/assert";
+import { assertEquals, assertExists, assertNotEquals } from "@std/assert";
 import { testDb } from "@utils/database.ts";
 import { ID } from "@utils/types.ts";
-import QuizMatchmakerConcept from "./QuizMatchmakerConcept.ts";
-
-/**
- * QuizMatchmaker Concept Tests
- *
- * Note: Some tests require a Gemini API key (GEMINI_API_KEY environment variable)
- * for LLM functionality. Tests are designed to pass both with and without the API key,
- * validating appropriate behavior in each case.
- */
+import QuizMatchmakerConcept, 
+{
+  QUIZ_QUESTIONS,
+} from "./QuizMatchmakerConcept.ts";
 
 const userA = "user:Alice" as ID;
 const userB = "user:Bob" as ID;
+
+const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+
+// helper functions to reduce repetitive code
+
+async function submitAllResponses(quizConcept: QuizMatchmakerConcept, user: ID, answerPrefix = "Answer to"): Promise<void> {
+  for (const q of QUIZ_QUESTIONS) {
+    const result = await quizConcept.submitResponse({
+      user,
+      question: q._id,
+      answerText: `${answerPrefix} question ${q.order}: ${q.text}`,
+    });
+    assertEquals("error" in result, false, `Submitting response for question ${q.order} should succeed`);
+  }
+}
+
+function hasError(result: unknown): boolean {
+  return typeof result === "object" && result !== null && "error" in result;
+}
 
 Deno.test("Principle: User answers personality quiz and receives hobby match", async () => {
   const [db, client] = await testDb();
   const quizConcept = new QuizMatchmakerConcept(db);
 
-  // Initialize LLM (will succeed if env vars are set, fail gracefully if not)
-  await quizConcept.initializeLLM().catch((err) => {
-    console.warn("LLM initialization failed, some tests may be skipped:", err);
-  });
-
   try {
-    // 1. Get the predefined quiz questions
-    const questions = quizConcept._getQuestions();
-    assertExists(questions, "Quiz should have predefined questions");
-    assertNotEquals(
-      questions.length,
-      0,
-      "Quiz should have at least one question",
-    );
+    console.log("1. Submitting answers to all questions");
+    await submitAllResponses(quizConcept, userA);
 
-    // 2. User submits answers to all questions
-    const submitResults = [];
-    for (const q of questions) {
-      const result = await quizConcept.submitResponse({
-        user: userA,
-        question: q._id,
-        answerText: `Answer to question ${q.order}: ${q.text}`,
-      });
-      assertEquals(
-        "error" in result,
-        false,
-        `Submitting response for question ${q.order} should succeed`,
-      );
-      submitResults.push(result);
+    console.log("2. Generating hobby match from answers");
+    if (!GEMINI_API_KEY) {
+      console.log("   - GEMINI_API_KEY not set; skipping LLM generation in principle test");
+      return;
     }
 
-    // 3. Generate hobby match from answers
+    // Initialize LLM and generate a real match
+    quizConcept.initializeLLM(GEMINI_API_KEY);
     const matchResult = await quizConcept.generateHobbyMatch({ user: userA });
-
-    // Check if there's an LLM error
-    if (("error" in matchResult)) {
-      // For LLM-related issues, we expect and accept certain errors
-      const knownLLMErrors = [
-        "LLM model not initialized",
-        "Failed to generate hobby match",
-        "Error fetching from",
-        "models/gemini-pro is not found",
-      ];
-
-      const isKnownLLMError = knownLLMErrors.some((errText) =>
-        matchResult.error.includes(errText)
-      );
-
-      if (isKnownLLMError) {
-        // Accept any known LLM-related error as valid test case
-        console.log(`Expected LLM error received: ${matchResult.error}`);
-      } else {
-        // For any non-LLM error, it's unexpected and should fail the test
-        throw new Error(
-          `Unexpected error generating match: ${matchResult.error}`,
-        );
-      }
-    } else {
-      // When LLM is properly configured, verify the hobby match
-      const { matchedHobby } = matchResult as { matchedHobby: string };
-      assertExists(matchedHobby, "Should return a matched hobby");
-      assertEquals(
-        typeof matchedHobby,
-        "string",
-        "Matched hobby should be a string",
-      );
-      assertNotEquals(
-        matchedHobby.length,
-        0,
-        "Matched hobby should not be empty",
-      );
-
-      // 4. Verify match is stored
-      const storedMatch = await quizConcept._getMatchedHobby({ user: userA });
-      assertEquals(
-        "error" in storedMatch,
-        false,
-        "Retrieving stored match should succeed",
-      );
-      if (!("error" in storedMatch)) {
-        assertEquals(
-          storedMatch[0].hobby,
-          matchedHobby,
-          "Stored hobby should match returned hobby",
-        );
-      }
-    }
-  } finally {
-    await client.close();
-  }
-});
-
-Deno.test("User Flow: Realistic quiz responses and hobby matching", async () => {
-  const [db, client] = await testDb();
-  const quizConcept = new QuizMatchmakerConcept(db);
-
-  // Initialize LLM
-  await quizConcept.initializeLLM().catch((err) => {
-    console.warn("LLM initialization failed, some tests may be skipped:", err);
-  });
-
-  try {
-    // 1. Get the questions
-    const questions = quizConcept._getQuestions();
-
-    // 2. Submit realistic answers
-    const answers = [
-      "I definitely prefer spending time outdoors, especially in nature",
-      "I'm more drawn to creative activities where I can express myself",
-      "I enjoy social interaction but also like activities I can do alone",
-      "I love learning new skills and challenging myself",
-      "I'm comfortable with moderate physical activity but nothing too strenuous",
-    ];
-
-    // Submit answers in order
-    for (let i = 0; i < questions.length; i++) {
-      const result = await quizConcept.submitResponse({
-        user: userB,
-        question: questions[i]._id,
-        answerText: answers[i],
-      });
-      assertEquals(
-        "error" in result,
-        false,
-        `Submitting answer ${i + 1} should succeed`,
-      );
-    }
-
-    // 3. Generate hobby match
-    const matchResult = await quizConcept.generateHobbyMatch({ user: userB });
-
     if ("error" in matchResult) {
-      const knownLLMErrors = [
-        "LLM model not initialized",
-        "Failed to generate hobby match",
-        "Error fetching from",
-        "models/gemini-pro is not found",
-      ];
-
-      const isKnownLLMError = knownLLMErrors.some((errText) =>
-        matchResult.error.includes(errText)
-      );
-
-      if (isKnownLLMError) {
-        console.log(`Expected LLM error received: ${matchResult.error}`);
-      } else {
-        throw new Error(
-          `Unexpected error generating match: ${matchResult.error}`,
-        );
-      }
-    } else {
-      const { matchedHobby } = matchResult;
-      console.log(
-        `Based on the quiz answers, suggested hobby: ${matchedHobby}`,
-      );
-
-      assertExists(matchedHobby, "Should return a matched hobby");
-      assertNotEquals(
-        matchedHobby.length,
-        0,
-        "Matched hobby should not be empty",
-      );
-
-      // 4. Verify the match was stored
-      const storedMatch = await quizConcept._getMatchedHobby({ user: userB });
-      assertEquals(
-        "error" in storedMatch,
-        false,
-        "Retrieving stored match should succeed",
-      );
-      if (!("error" in storedMatch)) {
-        assertEquals(
-          storedMatch[0].hobby,
-          matchedHobby,
-          "Stored hobby should match returned hobby",
-        );
-      }
+      throw new Error(`Unexpected error generating match: ${matchResult.error}`);
     }
+
+    const { matchedHobby } = matchResult;
+    console.log(`   ✓ LLM suggested hobby: "${matchedHobby}"`);
+    assertExists(matchedHobby, "Should return a matched hobby");
+    assertNotEquals(matchedHobby.length, 0, "Matched hobby should not be empty");
+
+    console.log("3. Verifying match is stored");
+    const storedMatch = await quizConcept._getMatchedHobby({ user: userA });
+    assertEquals(hasError(storedMatch), false, "Retrieving stored match should succeed");
+    if (!hasError(storedMatch) && Array.isArray(storedMatch)) {
+      assertEquals(storedMatch[0].hobby, matchedHobby, "Stored hobby should match returned hobby");
+      console.log("   ✓ Match stored correctly in database");
+    }
+    console.log("4. Principle satisfied: User can answer the quiz and receive a stored hobby match");
   } finally {
     await client.close();
   }
 });
+
+Deno.test(
+  {
+    name: "Action: generateHobbyMatch produces meaningful hobby match via LLM",
+    ignore: !GEMINI_API_KEY,
+    fn: async () => {
+      const [db, client] = await testDb();
+      const quizConcept = new QuizMatchmakerConcept(db, GEMINI_API_KEY);
+
+      try {
+        console.log("1. Submitting thoughtful answers to all questions");
+        const answers = [
+          "I definitely prefer spending time outdoors, especially in nature",
+          "I'm more drawn to creative activities where I can express myself",
+          "I enjoy social interaction but also like activities I can do alone",
+          "I love learning new skills and challenging myself",
+          "I'm comfortable with moderate physical activity but nothing too strenuous",
+        ];
+
+        // Submit answers in order
+        for (let i = 0; i < QUIZ_QUESTIONS.length; i++) {
+          const result = await quizConcept.submitResponse({
+            user: userB,
+            question: QUIZ_QUESTIONS[i]._id,
+            answerText: answers[i < answers.length ? i : 0],
+          });
+          assertEquals("error" in result, false, `Submitting answer for question ${i + 1} should succeed`);
+        }
+
+        console.log("2. Generating hobby match using LLM");
+        const matchResult = await quizConcept.generateHobbyMatch({ user: userB });
+        assertEquals(hasError(matchResult), false, "Hobby match generation should succeed with valid API key");
+
+        const { matchedHobby } = matchResult as { matchedHobby: string };
+        console.log(`   ✓ LLM suggested hobby: "${matchedHobby}"`);
+        assertExists(matchedHobby, "Should return a valid hobby");
+        assertNotEquals(matchedHobby.length, 0, "Hobby should not be empty");
+
+        console.log("3. Verifying match is stored in database");
+        const storedMatch = await quizConcept._getMatchedHobby({ user: userB });
+        assertEquals(hasError(storedMatch), false, "Retrieving stored match should succeed");
+
+        if (!hasError(storedMatch) && Array.isArray(storedMatch)) {
+          assertEquals(storedMatch[0].hobby, matchedHobby, "Stored hobby should match returned hobby");
+          console.log("   ✓ Match stored correctly in database");
+        }
+
+        // Attempt to generate a second match
+        console.log("4. Verifying constraints: Cannot generate second match");
+        const secondMatchResult = await quizConcept.generateHobbyMatch({ user: userB });
+        assertEquals(hasError(secondMatchResult), true, "Generating a second match should fail");
+        console.log(`   ✓ Second match properly rejected: "${hasError(secondMatchResult) && 'error' in secondMatchResult ? secondMatchResult.error : ""}"`);
+
+        console.log("5. Action requirements satisfied: generateHobbyMatch returns a single, stored hobby match");
+      } finally {
+        await client.close();
+      }
+    },
+  },
+);
 
 Deno.test("Action: submitResponse requirements and restrictions", async () => {
   const [db, client] = await testDb();
   const quizConcept = new QuizMatchmakerConcept(db);
 
   try {
-    // 1. Cannot submit for invalid question
+    console.log("1. Attempt invalid question submission (should fail)");
     const invalidResult = await quizConcept.submitResponse({
       user: userA,
       question: "invalid:question" as ID,
       answerText: "This should fail",
     });
-    assertEquals(
-      "error" in invalidResult,
-      true,
-      "Using invalid question ID should fail",
-    );
+    assertEquals(hasError(invalidResult), true, "Using invalid question ID should fail");
+    console.log("   ✓ Invalid question rejected as expected");
 
-    // 2. Get a valid question for testing
-    const questions = quizConcept._getQuestions();
-    const testQuestion = questions[0]._id;
+    console.log("2. Get a valid question for testing");
+    const testQuestion = QUIZ_QUESTIONS[0]._id;
+    console.log(`   ✓ Using question: ${QUIZ_QUESTIONS[0].text}`);
 
-    // 3. Submit valid response
+    console.log("3. Submit a valid response");
     const submitResult = await quizConcept.submitResponse({
       user: userA,
       question: testQuestion,
       answerText: "My valid answer",
     });
-    assertEquals(
-      "error" in submitResult,
-      false,
-      "Valid submission should succeed",
-    );
+    assertEquals(hasError(submitResult), false, "Valid submission should succeed");
+    console.log("   ✓ Valid submission succeeded");
 
-    // 4. Cannot submit duplicate response
+    console.log("4. Attempt duplicate submission (should fail)");
     const duplicateResult = await quizConcept.submitResponse({
       user: userA,
       question: testQuestion,
       answerText: "Trying to change my answer",
     });
-    assertEquals(
-      "error" in duplicateResult,
-      true,
-      "Duplicate submission should fail",
-    );
+    assertEquals(hasError(duplicateResult), true, "Duplicate submission should fail");
+    console.log("   ✓ Duplicate submission rejected as expected");
+    console.log("5. Action requirements satisfied: submitResponse validates question IDs and prevents duplicates");
   } finally {
     await client.close();
   }
@@ -270,23 +188,20 @@ Deno.test("Action: updateResponse functionality and restrictions", async () => {
   const quizConcept = new QuizMatchmakerConcept(db);
 
   try {
-    // 1. Get a valid question for testing
-    const questions = quizConcept._getQuestions();
-    const testQuestion = questions[0]._id;
+    console.log("1. Get a valid question for testing");
+    const testQuestion = QUIZ_QUESTIONS[0]._id;
+    console.log(`   ✓ Using question: ${QUIZ_QUESTIONS[0].text}`);
 
-    // 2. Cannot update non-existent response
+    console.log("2. Update non-existent response (should fail)");
     const updateWithoutSubmitResult = await quizConcept.updateResponse({
       user: userA,
       question: testQuestion,
       newAnswerText: "Cannot update what doesn't exist",
     });
-    assertEquals(
-      "error" in updateWithoutSubmitResult,
-      true,
-      "Updating non-existent response should fail",
-    );
+    assertEquals(hasError(updateWithoutSubmitResult), true, "Updating non-existent response should fail");
+    console.log("   ✓ Updating non-existent response rejected as expected");
 
-    // 3. Submit then update
+    console.log("3. Submit then update the response");
     await quizConcept.submitResponse({
       user: userA,
       question: testQuestion,
@@ -298,17 +213,85 @@ Deno.test("Action: updateResponse functionality and restrictions", async () => {
       question: testQuestion,
       newAnswerText: "Updated answer",
     });
-    assertEquals(
-      "error" in updateResult,
-      false,
-      "Valid update should succeed",
-    );
+    assertEquals(hasError(updateResult), false, "Valid update should succeed");
+    console.log("   ✓ Update succeeded");
 
-    // 4. Verify update
+    console.log("4. Verify the update persisted");
     const responses = await quizConcept._getUserResponses({ user: userA });
     const updatedResponse = responses.find((r) => r.question === testQuestion);
     assertExists(updatedResponse, "Response should exist");
     assertEquals(updatedResponse.answerText, "Updated answer");
+    console.log("   ✓ Update verified in stored responses");
+    console.log("5. Action requirements satisfied: updateResponse enforces preconditions and updates stored response");
+  } finally {
+    await client.close();
+  }
+});
+
+Deno.test("Action: deleteHobbyMatch functionality and integration with full lifecycle", async () => {
+  const [db, client] = await testDb();
+  const quizConcept = new QuizMatchmakerConcept(db);
+  const testUser = "user:TestUser" as ID;
+
+  try {
+    console.log("1. Submitting responses for all quiz questions");
+    await submitAllResponses(quizConcept, testUser, "Sample answer to");
+    console.log("   ✓ All responses submitted successfully");
+
+    // Initialize LLM if API key is present
+    if (GEMINI_API_KEY) {
+      console.log("2. Initializing LLM with API key");
+      quizConcept.initializeLLM(GEMINI_API_KEY);
+    } else {
+      console.log("   - GEMINI_API_KEY not set; test will likely fail without LLM");
+    }
+
+    console.log("3. Generating initial hobby match");
+    const matchResult = await quizConcept.generateHobbyMatch({ user: testUser });
+    assertEquals(hasError(matchResult), false, "Hobby match generation should succeed");
+    const { matchedHobby } = matchResult as { matchedHobby: string };
+    console.log(`   ✓ Generated hobby: "${matchedHobby}"`);
+
+    console.log("4. Attempting to update a response (should fail with existing match)");
+    const updateResult = await quizConcept.updateResponse({
+      user: testUser,
+      question: QUIZ_QUESTIONS[0]._id,
+      newAnswerText: "Changed answer",
+    });
+    assertEquals(hasError(updateResult), true, "Update should fail when match exists");
+    console.log(`   ✓ Update correctly rejected: "${hasError(updateResult) && 'error' in updateResult ? updateResult.error : ""}"`);
+
+    console.log("5. Deleting the hobby match");
+    const deleteResult = await quizConcept.deleteHobbyMatch({ user: testUser });
+    assertEquals(hasError(deleteResult), false, "Match deletion should succeed");
+    console.log("   ✓ Match successfully deleted");
+
+    console.log("6. Verifying match was actually removed");
+    const matchCheck = await quizConcept._getMatchedHobby({ user: testUser });
+    assertEquals(hasError(matchCheck), true, "Match should no longer exist");
+    console.log(`   ✓ Match confirmed deleted: "${hasError(matchCheck) && 'error' in matchCheck ? matchCheck.error : ""}"`);
+
+    console.log("7. Now updating a response (should succeed after match deletion)");
+    const updateResultAfterDelete = await quizConcept.updateResponse({
+      user: testUser,
+      question: QUIZ_QUESTIONS[0]._id,
+      newAnswerText: "Updated answer after match deletion",
+    });
+    assertEquals(hasError(updateResultAfterDelete), false, "Update should succeed after match deletion");
+    console.log("   ✓ Response successfully updated after match deletion");
+
+    console.log("8. Generating a new hobby match after updates");
+    const newMatchResult = await quizConcept.generateHobbyMatch({ user: testUser });
+    assertEquals(hasError(newMatchResult), false, "New hobby match generation should succeed");
+    const { matchedHobby: newHobby } = newMatchResult as { matchedHobby: string };
+    console.log(`   ✓ New generated hobby: "${newHobby}"`);
+
+    console.log("9. Attempting to delete non-existent match (for a different user)");
+    const nonExistentResult = await quizConcept.deleteHobbyMatch({ user: "user:NonExistent" as ID });
+    assertEquals(hasError(nonExistentResult), true, "Deleting non-existent match should fail");
+    console.log(`   ✓ Non-existent match deletion correctly rejected: "${hasError(nonExistentResult) && 'error' in nonExistentResult ? nonExistentResult.error : ""}"`);
+
+    console.log("10. Action requirements satisfied: deleteHobbyMatch enables the full response-match-delete-update-match lifecycle");
   } finally {
     await client.close();
   }

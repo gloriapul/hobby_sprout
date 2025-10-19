@@ -52,7 +52,7 @@ interface StepDoc {
 export default class MilestoneTrackerConcept {
   private goals: Collection<GoalDoc>;
   private steps: Collection<StepDoc>;
-  llm: GeminiLLM | null = null; // public for testing
+  private llm: GeminiLLM | null = null;
   private apiKey: string | null = null;
 
   constructor(private readonly db: Db, apiKey?: string) {

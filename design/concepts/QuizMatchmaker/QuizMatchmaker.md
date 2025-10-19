@@ -10,10 +10,8 @@
 
 # response:
 
-# concept: QuizMatchmaker (Hardcoded Questions)
-
 *   **concept**: QuizMatchmaker \[User]
-*   **purpose**: To match users with suitable hobbies based on their responses to a *predefined, fixed* quiz, leveraging an LLM for intelligent matching.
+*   **purpose**: To match users with suitable hobbies based on their responses to a *predefined, fixed* quiz.
 *   **principle**: If a user provides answers to all predefined quiz questions, then the system will use an AI (LLM) to analyze these responses and suggest a specific hobby that aligns with the user's interests, which the user can then view.
 *   **Notes**: The quiz questions are inherent to the concept's definition and are not managed through actions. They are fixed and cannot be added, removed, or modified after deployment.
 *   **state**:
@@ -35,6 +33,9 @@
     *   `generateHobbyMatch (user: User): (matchedHobby: String)`
         *   **requires**: The `user` has submitted responses for *all* predefined `Questions`. No `HobbyMatch` already exists for this `user`.
         *   **effects**: Uses an LLM to analyze the `user`'s `UserResponses` to `Questions`, generates a `matchedHobby` string, stores it, and returns it.
+  *   `deleteHobbyMatch (user: User)`
+    *   **requires**: A `HobbyMatch` exists for this `user`.
+    *   **effects**: Deletes the existing `HobbyMatch` so the user can update responses and generate a new match.
 *   **queries**:
     *   `_getQuestions (): (question: { _id: Question, text: String, order: Number })[]`
         *   **requires**: true
@@ -46,34 +47,32 @@
         *   **requires**: The `user` exists and has a `HobbyMatch`.
         *   **effects**: Returns the `matchedHobby` for the `user`.
 
-# file: src/quizmatchmaker/QuizMatchmakerConcept.ts
 
 ```typescript
 import { Collection, Db } from "mongodb";
 import { Empty, ID } from "@utils/types.ts";
-import { GenerativeModel, GoogleGenerativeAI } from "@google/generative-ai";
-import { load } from "@std/dotenv";
+import { GeminiLLM } from "@utils/gemini-llm.ts";
 
 // Collection prefix to ensure namespace separation
 const PREFIX = "QuizMatchmaker" + ".";
 
-// Generic types for the concept's external dependencies
+// Generic types for the concept
 type User = ID;
 
-// Internal entity type for Question IDs (referencing hardcoded questions)
+// For hardcoded questions
 export type Question = ID;
 
 /**
  * Interface for the structure of a hardcoded quiz question.
  */
 export interface HardcodedQuestion {
-  _id: Question; // Unique ID for the question
-  text: string; // The actual text of the quiz question
-  order: number; // Order in which questions should be presented, unique
+  _id: Question; // unique ID for the question
+  text: string; // actual text of the quiz question
+  order: number; // order in which questions should be presented, unique
 }
 
 /**
- * **HARDCODED QUIZ QUESTIONS**
+ * HARDCODED QUIZ QUESTIONS
  * These questions define the quiz structure and are immutable.
  * The _id values are arbitrary unique strings for identification.
  */
@@ -107,7 +106,8 @@ export const QUIZ_QUESTIONS: HardcodedQuestion[] = [
 ];
 
 /**
- * State: A set of UserResponses, linking a user, a question, and their text answer.
+ * State:
+ * A set of UserResponses, linking a user, a question, and their text answer.
  * Each document represents one user's answer to one specific question.
  */
 interface UserResponseDoc {
@@ -118,7 +118,8 @@ interface UserResponseDoc {
 }
 
 /**
- * State: A set of HobbyMatches, storing the matched hobby for each user.
+ * State:
+ * A set of HobbyMatches, storing the matched hobby for each user.
  * Each document represents the final hobby match for a user.
  */
 interface HobbyMatchDoc {
@@ -134,39 +135,61 @@ interface HobbyMatchDoc {
 export default class QuizMatchmakerConcept {
   private userResponses: Collection<UserResponseDoc>;
   private hobbyMatches: Collection<HobbyMatchDoc>;
-  private llmModel: GenerativeModel | null = null;
+  private llm: GeminiLLM | null = null;
 
-  constructor(private readonly db: Db) {
+  constructor(private readonly db: Db, apiKey?: string) {
     this.userResponses = this.db.collection(PREFIX + "userResponses");
     this.hobbyMatches = this.db.collection(PREFIX + "hobbyMatches");
-  }
 
-  /**
-   * Initializes the LLM model with configuration from environment
-   */
-  async initializeLLM(): Promise<void> {
-    try {
-      // Load environment variables from .env file
-      const env = await load();
-      const apiKey = env["GEMINI_API_KEY"] || Deno.env.get("GEMINI_API_KEY");
-      const modelName = env["GEMINI_MODEL"] || "gemini-pro";
-
-      if (!apiKey) {
-        throw new Error("GEMINI_API_KEY not found in environment or .env file");
-      }
-
-      const genAI = new GoogleGenerativeAI(apiKey);
-      this.llmModel = genAI.getGenerativeModel({ model: modelName });
-    } catch (error) {
-      console.warn("Failed to initialize LLM:", error);
-      this.llmModel = null;
-      throw error;
+    // initialize LLM if API key is provided
+    if (apiKey) {
+      this.initializeLLM(apiKey);
     }
   }
 
   /**
-   * Helper to validate if a given question ID exists in our hardcoded list.
-   * @param questionId The ID of the question to check.
+   * Helper: sanitize the hobby name returned by the LLM.
+   */
+  private sanitizeHobbyName(raw: string): string | undefined {
+    // take first non-empty line
+    const firstLine = (raw.split(/\r?\n/).find((l) => l.trim().length > 0) || "").trim();
+    if (!firstLine) return undefined;
+
+    // strip surrounding backticks or quotes
+    let s = firstLine.replace(/^[`'"\s]+|[`'"\s]+$/g, "").trim();
+
+    // remove an optional leading label like "Hobby:" or "Suggested hobby:"
+    s = s.replace(/^(suggested\s+hobby|hobby)\s*:\s*/i, "");
+
+    // if multiple suggestions separated by comma or ' and ', pick the first piece
+    const splitDelim = s.includes(",") ? "," : (/(\s+and\s+)/i.test(s) ? /\s+and\s+/i : null);
+    if (splitDelim) {
+      s = s.split(splitDelim)[0].trim();
+    }
+
+    // trim trailing punctuation like periods/semicolons/colons/exclamations
+    s = s.replace(/[\.;:!]+$/g, "").trim();
+
+    // basic check
+    if (s.length < 1 || s.length > 60) return undefined;
+
+    return s;
+  }
+
+  /**
+   * Helper: initializes the LLM with the provided API key
+   */
+  initializeLLM(apiKey: string): void {
+    try {
+      this.llm = new GeminiLLM({ apiKey });
+    } catch (error) {
+      console.warn("Failed to initialize LLM:", error);
+      this.llm = null;
+    }
+  }
+
+  /**
+   * Helper: Validate if a given question ID exists in our hardcoded list.
    * @returns The HardcodedQuestion object if found, otherwise undefined.
    */
   public getQuestionById(questionId: Question): HardcodedQuestion | undefined {
@@ -176,9 +199,6 @@ export default class QuizMatchmakerConcept {
   /**
    * Action: Allows a user to submit their response to a specific quiz question.
    *
-   * @param user - The ID of the user submitting the response.
-   * @param question - The ID of the question being answered (must be one of the predefined quiz questions).
-   * @param answerText - The user's free-form text answer.
    * @returns An empty object for success, or an error message.
    *
    * @requires The `question` ID must correspond to one of the predefined questions. The `user` has not yet submitted a response for this specific `question`.
@@ -191,6 +211,7 @@ export default class QuizMatchmakerConcept {
       answerText: string;
     },
   ): Promise<Empty | { error: string }> {
+    // Validate question ID against hardcoded list
     if (!this.getQuestionById(question)) {
       return {
         error:
@@ -222,10 +243,7 @@ export default class QuizMatchmakerConcept {
 
   /**
    * Action: Updates an existing response from a user to a specific quiz question.
-   *
-   * @param user - The ID of the user whose response is being updated.
-   * @param question - The ID of the question for which the response is being updated (must be one of the predefined quiz questions).
-   * @param newAnswerText - The new free-form text answer.
+   * 
    * @returns An empty object for success, or an error message.
    *
    * @requires The `question` ID must correspond to one of the predefined questions. The `user` has already submitted a response for this specific `question`. No `HobbyMatch` exists for this `user`.
@@ -273,7 +291,6 @@ export default class QuizMatchmakerConcept {
   /**
    * Action: Generates a hobby match for a user based on their quiz responses using an LLM.
    *
-   * @param user - The ID of the user for whom to generate a match.
    * @returns An object containing the suggested matched hobby string, or an error message.
    *
    * @requires The `user` has submitted responses for all *predefined* `Questions`. No `HobbyMatch` already exists for this `user`.
@@ -282,27 +299,11 @@ export default class QuizMatchmakerConcept {
   async generateHobbyMatch(
     { user }: { user: User },
   ): Promise<{ matchedHobby: string } | { error: string }> {
-    if (!this.llmModel) {
-      return {
-        error:
-          "LLM model not initialized. GEMINI_API_KEY might be missing or invalid.",
-      };
-    }
-
-    const allQuestions = QUIZ_QUESTIONS; // Directly use hardcoded questions
-    if (allQuestions.length === 0) {
-      // This should ideally not happen if QUIZ_QUESTIONS is properly defined
-      return {
-        error:
-          "No quiz questions defined within the concept. This is an internal configuration error.",
-      };
-    }
-
     const userResponses = await this.userResponses.find({ user }).toArray();
-    if (userResponses.length !== allQuestions.length) {
+    if (userResponses.length !== QUIZ_QUESTIONS.length) {
       return {
         error:
-          `User ${user} has not answered all ${allQuestions.length} questions. Please submit responses for all questions.`,
+          `User ${user} has not answered all ${QUIZ_QUESTIONS.length} questions. Please submit responses for all questions.`,
       };
     }
 
@@ -314,24 +315,29 @@ export default class QuizMatchmakerConcept {
       };
     }
 
-    // Prepare prompt for LLM
+    // check if LLM is initialized
+    if (!this.llm) {
+      return {
+        error: "LLM not initialized. API key might be missing or invalid.",
+      };
+    }
+
+    // prep prompt for LLM
     let prompt =
       "Based on the following quiz answers, suggest a single hobby that would best suit the user. Your answer should only be the name of the hobby, e.g., 'Gardening' or 'Photography', and nothing else. Do not include any introductory or concluding remarks, just the hobby name.\n\nQuestions and Answers:\n";
-    for (const q of allQuestions) {
+    for (const q of QUIZ_QUESTIONS) {
       const response = userResponses.find((r) => r.question === q._id);
       if (response) {
         prompt += `Q: ${q.text}\nA: ${response.answerText}\n`;
       } else {
-        // This case should be prevented by the userResponses.length check, but as a safeguard:
+        // this case should be prevented by the userResponses.length check, but as a safeguard:
         return { error: `Missing response for question: ${q.text}.` };
       }
     }
 
     try {
-      // We can assert non-null here since we checked above
-      const result = await this.llmModel!.generateContent(prompt);
-      const responseText = result.response.text();
-      const matchedHobby = responseText.trim(); // Assuming LLM returns just the hobby name
+      const responseText = await this.llm.executeLLM(prompt);
+      const matchedHobby = this.sanitizeHobbyName(responseText);
 
       if (!matchedHobby) {
         return {
@@ -356,25 +362,11 @@ export default class QuizMatchmakerConcept {
   }
 
   /**
-   * Query: Retrieves all predefined quiz questions.
-   *
-   * @returns An array of question objects, sorted by their `order`.
-   *
-   * @requires true
-   * @effects Returns an array of all *predefined* quiz questions, ordered by `order`.
-   */
-  _getQuestions(): HardcodedQuestion[] {
-    // Return a copy to ensure immutability
-    return [...QUIZ_QUESTIONS].sort((a, b) => a.order - b.order);
-  }
-
-  /**
    * Query: Retrieves all responses submitted by a specific user.
    *
-   * @param user - The ID of the user.
    * @returns An array of response objects, each containing the question ID and the answer text.
    *
-   * @requires The `user` exists (implicitly, or the array will be empty).
+   * @requires The `user` exists.
    * @effects Returns all `UserResponses` submitted by the `user`.
    */
   async _getUserResponses(
@@ -390,7 +382,6 @@ export default class QuizMatchmakerConcept {
   /**
    * Query: Retrieves the matched hobby for a specific user.
    *
-   * @param user - The ID of the user.
    * @returns An array containing an object with the matched hobby string, or an error message.
    *
    * @requires The `user` exists and has a `HobbyMatch`.
@@ -407,26 +398,21 @@ export default class QuizMatchmakerConcept {
   }
 
   /**
-   * ADMIN Action: Clears all user responses. Use with extreme caution.
-   * This action is intended for **administrative setup** only.
+   * Action: Deletes an existing hobby match for a user (to allow re-matching).
    *
-   * @requires For administrative use only.
-   * @effects Deletes all user responses.
-   */
-  async _clearAllUserResponses(): Promise<Empty> {
-    await this.userResponses.deleteMany({});
-    return {};
-  }
-
-  /**
-   * ADMIN Action: Clears all hobby matches. Use with extreme caution.
-   * This action is intended for **administrative setup** only.
+   * @returns Empty on success or an error string if none existed.
    *
-   * @requires For administrative use only.
-   * @effects Deletes all hobby matches.
+   * @requires A HobbyMatch for `user` exists.
+   * @effects Removes the HobbyMatch for `user`, allowing answers to be updated and a new match generated.
    */
-  async _clearAllHobbyMatches(): Promise<Empty> {
-    await this.hobbyMatches.deleteMany({});
+  async deleteHobbyMatch(
+    { user }: { user: User },
+  ): Promise<Empty | { error: string }> {
+    const existingMatch = await this.hobbyMatches.findOne({ _id: user });
+    if (!existingMatch) {
+      return { error: `No hobby match exists for user ${user}.` };
+    }
+    await this.hobbyMatches.deleteOne({ _id: user });
     return {};
   }
 }

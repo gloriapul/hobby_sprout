@@ -1,3 +1,12 @@
+---
+timestamp: 'Sat Oct 18 2025 23:07:36 GMT-0400 (Eastern Daylight Time)'
+parent: '[[../20251018_230736.3fb5d8c9.md]]'
+content_id: 05b00ac04610795d99b01fd69fdfc6f4387ab5d81fd79ec49b97d1babc12fbd8
+---
+
+# file: src/quizmatchmaker/QuizMatchmakerConcept.test.ts
+
+```typescript
 import { assertEquals, assertExists, assertNotEquals } from "@std/assert";
 import { testDb } from "@utils/database.ts";
 import { ID } from "@utils/types.ts";
@@ -281,3 +290,4 @@ Deno.test("Action: deleteHobbyMatch functionality and integration with full life
     await client.close();
   }
 });
+```

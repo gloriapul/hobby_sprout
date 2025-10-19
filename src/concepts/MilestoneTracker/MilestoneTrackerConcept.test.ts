@@ -3,8 +3,8 @@ import { testDb } from "@utils/database.ts";
 import { ID } from "@utils/types.ts";
 import MilestoneTrackerConcept from "./MilestoneTrackerConcept.ts";
 
-const userAlice = "user:alice" as ID;
-const userBob = "user:bob" as ID;
+const userA = "user:alice" as ID;
+const userB = "user:bob" as ID;
 
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 
@@ -15,7 +15,7 @@ Deno.test("Principle: Goal lifecycle and input validation", async () => {
   try {
     console.log("1. Testing empty goal description validation");
     const emptyResult = await milestoneTracker.createGoal({
-      user: userBob,
+      user: userB,
       description: "",
     });
     assertEquals(
@@ -31,7 +31,7 @@ Deno.test("Principle: Goal lifecycle and input validation", async () => {
 
     console.log("2. Creating a valid goal");
     const createResult = await milestoneTracker.createGoal({
-      user: userAlice,
+      user: userA,
       description: "Learn digital photography",
     });
     assertEquals(
@@ -44,7 +44,7 @@ Deno.test("Principle: Goal lifecycle and input validation", async () => {
 
     console.log("3. Testing duplicate goal validation");
     const duplicateResult = await milestoneTracker.createGoal({
-      user: userAlice,
+      user: userA,
       description: "Learn painting",
     });
     assertEquals(
@@ -79,7 +79,7 @@ Deno.test("Principle: Goal lifecycle and input validation", async () => {
 
     console.log("6. Creating another goal after closing the previous one");
     const newGoalResult = await milestoneTracker.createGoal({
-      user: userAlice,
+      user: userA,
       description: "Learn to cook Italian food",
     });
     assertEquals(
@@ -117,7 +117,7 @@ Deno.test("Action: addStep/completeStep manage manual steps and statuses", async
   try {
     console.log("1. Creating a goal for step management");
     const createResult = await milestoneTracker.createGoal({
-      user: userAlice,
+      user: userA,
       description: "Learn to play guitar",
     });
     assertEquals(
@@ -255,7 +255,7 @@ Deno.test({
     try {
       console.log("1. Creating a podcast-focused goal");
       const createResult = await milestoneTracker.createGoal({
-        user: userAlice,
+        user: userA,
         description: "Learn to make a podcast about world issues",
       });
       assertEquals(
@@ -398,7 +398,7 @@ Deno.test("Action: robust error handling for invalid inputs and states", async (
     console.log("2. Testing for empty step description");
     // create a valid goal
     const createResult = await milestoneTracker.createGoal({
-      user: userBob,
+      user: userB,
       description: "Learn to code",
     });
     const goalId = (createResult as { goal: ID }).goal;
@@ -483,7 +483,7 @@ Deno.test("Action: removeStep removes an incomplete step and validates constrain
   try {
     console.log("1. Create goal and add steps");
     const createResult = await milestoneTracker.createGoal({
-      user: userAlice,
+      user: userA,
       description: "Learn watercolor painting",
     });
     assertEquals("error" in createResult, false);
