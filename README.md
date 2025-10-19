@@ -6,8 +6,6 @@
 
 # Concept Implementations
 
-This directory contains the design documentation for each implemented concept:
-
 ## PasswordAuth
 - Purpose: Secure user authentication
 - [PasswordAuthentication Design](design/concepts/PasswordAuthentication/PasswordAuthentication.md)
@@ -23,6 +21,9 @@ This directory contains the design documentation for each implemented concept:
 ## MilestoneTracker
 - Purpose: Track progress on hobby-related goals through steps
 - [MilestoneTracker Design](design/concepts/MilestoneTracker/MilestoneTracker.md)
+
+## Overall Design Changes
+- [Changes](design/design-changes.md)
 
 # Setup
 
