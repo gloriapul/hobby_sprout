@@ -2,7 +2,7 @@
 
 [6.104 Portfolio](https://github.com/gloriapul/61040-portfolio)
 
-[Original Milestone Tracker Implementation](https://github.com/gloriapul/hobbysprout/blob/main/milestones.ts)
+[Assignment 3 Milestone Tracker Implementation](https://github.com/gloriapul/hobbysprout/blob/main/milestones.ts)
 
 # Concept Implementations
 
