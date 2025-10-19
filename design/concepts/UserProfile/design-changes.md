@@ -89,13 +89,7 @@ actions
 
 ## Other Implementation Details
 
-1. **Data Storage**: Used MongoDB collections for `userProfiles` and `userHobbies` with proper namespacing via a prefix.
-
-2. **Type Safety**: Added TypeScript interfaces for improved code reliability:
-   - `UserProfileDoc` for profile information
-   - `UserHobbyDoc` for user-hobby relationships
-
-3. **Error Handling**:
+1. **Error Handling**:
    - Each action returns either an empty object (success) or an error message
    - Specific error messages for different failure scenarios:
      - Duplicate profile: `Profile for user ${user} already exists.`
@@ -104,11 +98,10 @@ actions
      - Hobby not found: `Hobby '${hobby}' not found for user ${user}.`
      - Already inactive hobby: `Hobby '${hobby}' is already inactive for user ${user}.`
 
-4. **Separation of Concerns**:
-   - Separated queries that retrieve information from actions that modify state
+2. **Separation of Concerns**:
    - Implemented user-hobby relationships as a separate collection rather than embedding
 
-5. **Unrestricted Hobby Selection**:
+3. **Unrestricted Hobby Selection**:
    - Implementation allows users to specify any hobby without restrictions from a preset list
    - The `hobby` argument is treated as a simple string name with no validation against a predefined set
    - This change was made because my Communities concept is no longer part of the implementation, removing the need for a predefined set of hobby communities
