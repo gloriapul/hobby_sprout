@@ -43,24 +43,7 @@ Action: createProfile/closeProfile enforces profile uniqueness and lifecycle ...
 ok | 3 passed | 0 failed (2s)
 
 ## Summary
-All tests passed successfully, verifying:
-
-1. **Profile Management**
-   - Users can create profiles with unique identities
-   - Profile creation prevents duplicates
-   - Profiles can be closed (set to inactive)
-
-2. **Personal Information**
-   - Users can set display names
-   - Users can set profile images
-   - Information is correctly stored and retrievable
-
-3. **Hobby Management**
-   - Users can add hobbies to their profiles
-   - Duplicate active hobbies are prevented
-   - Hobbies can be closed (set to inactive)
-   - Only active hobbies are shown in queries
-
-4. **Principle Verification**
-   - After setting profile information, it is visible to others through queries
-   - The concept maintains appropriate relationships between users and their hobbies
+- Profile creation and closure works with proper uniqueness validation
+- Personal information (display name, profile image) is correctly managed
+- Hobby assignment system handles addition, duplicates, and status changes
+- All queries return correct profile information for other users to see

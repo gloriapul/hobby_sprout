@@ -9,186 +9,570 @@
 
 # final 
 ```typescript
-import { assertEquals, assertExists, assertNotEquals } from "@std/assert";
+import { assertEquals, assertExists } from "@std/assert";
 import { testDb } from "@utils/database.ts";
 import { ID } from "@utils/types.ts";
-import PasswordAuthenticationConcept from "./PasswordAuthenticationConcept.ts";
+import MilestoneTrackerConcept from "./MilestoneTrackerConcept.ts";
 
-Deno.test("Principle: User registers with unique credentials and authenticates as the same user", async () => {
+const userAlice = "user:alice" as ID;
+const userBob = "user:bob" as ID;
+
+const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+
+Deno.test("Principle: Goal lifecycle and input validation", async () => {
   const [db, client] = await testDb();
-  const concept = new PasswordAuthenticationConcept(db);
+  const milestoneTracker = new MilestoneTrackerConcept(db, GEMINI_API_KEY);
 
   try {
-    console.log("1. Creating a new user account with username and password");
-    // simple registration
-    const username = "testuser";
-    const password = "password123";
-    const registerResult = await concept.register({
-      username,
-      password,
+    console.log("1. Testing empty goal description validation");
+    const emptyResult = await milestoneTracker.createGoal({
+      user: userBob,
+      description: "",
     });
-
-    assertNotEquals(
-      "error" in registerResult,
-      true,
-      "Registration should not fail",
-    );
-    const { user: userId } = registerResult as { user: ID };
-    assertExists(userId, "User ID should be returned");
-    console.log(`   ✓ User registered successfully with ID: ${userId}`);
-
-    console.log("2. Authenticating with the same username and password");
-    // log in with same credentials
-    const authResult = await concept.authenticate({
-      username,
-      password,
-    });
-
-    assertNotEquals(
-      "error" in authResult,
-      true,
-      "Authentication should not fail",
-    );
-    const { user: authUserId } = authResult as { user: ID };
-
-    // verifying that authentication returns the same user, not logging into another account
     assertEquals(
-      authUserId,
-      userId,
-      "Authentication should return the same user ID",
+      "error" in emptyResult,
+      true,
+      "Empty description should be rejected",
     );
     console.log(
-      `   ✓ User authenticated successfully with the same ID: ${authUserId}`,
+      `   - Empty goal rejected with error: "${
+        (emptyResult as { error: string }).error
+      }"`,
+    );
+
+    console.log("2. Creating a valid goal");
+    const createResult = await milestoneTracker.createGoal({
+      user: userAlice,
+      description: "Learn digital photography",
+    });
+    assertEquals(
+      "error" in createResult,
+      false,
+      "Valid goal creation should succeed",
+    );
+    const goalId = (createResult as { goal: ID }).goal;
+    console.log(`   ✓ Goal "Learn digital photography" created successfully`);
+
+    console.log("3. Testing duplicate goal validation");
+    const duplicateResult = await milestoneTracker.createGoal({
+      user: userAlice,
+      description: "Learn painting",
+    });
+    assertEquals(
+      "error" in duplicateResult,
+      true,
+      "Creating a second active goal should fail",
     );
     console.log(
-      "3. Principle satisfied: User can register and authenticate as the same identity",
+      `   - Duplicate goal correctly rejected with error: "${
+        (duplicateResult as { error: string }).error
+      }"`,
+    );
+
+    console.log("4. Testing closing a goal");
+    await milestoneTracker.closeGoal({ goal: goalId });
+    console.log(`   ✓ Goal closed successfully`);
+
+    console.log("5. Testing non-existent step completion");
+    const invalidResult = await milestoneTracker.completeStep({
+      step: "step:nonexistent" as ID,
+    });
+    assertEquals(
+      "error" in invalidResult,
+      true,
+      "Completing non-existent step should fail",
+    );
+    console.log(
+      `   - Non-existent step completion correctly rejected: "${
+        (invalidResult as { error: string }).error
+      }"`,
+    );
+
+    console.log("6. Creating another goal after closing the previous one");
+    const newGoalResult = await milestoneTracker.createGoal({
+      user: userAlice,
+      description: "Learn to cook Italian food",
+    });
+    assertEquals(
+      "error" in newGoalResult,
+      false,
+      "Creating goal after closing previous one should succeed",
+    );
+    console.log(
+      `   ✓ New goal created successfully after closing previous one`,
+    );
+
+    console.log("7. Closing the new goal");
+    const closeResult = await milestoneTracker.closeGoal({
+      goal: (newGoalResult as { goal: ID }).goal,
+    });
+    assertEquals(
+      "error" in closeResult,
+      false,
+      "Closing goal should succeed",
+    );
+    console.log(`   ✓ Goal closed successfully`);
+
+    console.log(
+      "8. Principle satisfied: Goal lifecycle and input validation behaviors are enforced",
     );
   } finally {
     await client.close();
   }
 });
 
-Deno.test("Action: register enforces username uniqueness", async () => {
+Deno.test("Action: addStep/completeStep manage manual steps and statuses", async () => {
   const [db, client] = await testDb();
-  const concept = new PasswordAuthenticationConcept(db);
+  const milestoneTracker = new MilestoneTrackerConcept(db, GEMINI_API_KEY);
 
   try {
-    console.log("1. Testing username uniqueness requirement");
-    const username = "uniqueuser";
-    const password = "password123";
-
-    console.log(`   • Registering first user with username "${username}"`);
-    // registering the first example user
-    const result1 = await concept.register({
-      username,
-      password,
+    console.log("1. Creating a goal for step management");
+    const createResult = await milestoneTracker.createGoal({
+      user: userAlice,
+      description: "Learn to play guitar",
     });
-
-    assertNotEquals(
-      "error" in result1,
-      true,
-      "First registration should succeed",
+    assertEquals(
+      "error" in createResult,
+      false,
+      "Goal creation should succeed",
     );
-    console.log("   ✓ First registration succeeded as expected");
+    const goalId = (createResult as { goal: ID }).goal;
+    console.log(`   ✓ Goal "Learn to play guitar" created successfully`);
+
+    console.log("2. Adding manual steps to the goal");
+    const steps = [
+      "Buy a guitar and necessary accessories",
+      "Learn basic chords (A, D, E, G, C)",
+      "Practice chord transitions for 15 minutes daily",
+      "Learn first simple song",
+      "Practice strumming patterns",
+    ];
+
+    const stepIds: ID[] = [];
+
+    // Add each step and collect IDs
+    for (const stepDesc of steps) {
+      const addResult = await milestoneTracker.addStep({
+        goal: goalId,
+        description: stepDesc,
+      });
+      assertEquals(
+        "error" in addResult,
+        false,
+        `Adding step "${stepDesc}" should succeed`,
+      );
+      stepIds.push((addResult as { step: ID }).step);
+      console.log(`   ✓ Added step: "${stepDesc}"`);
+    }
+
+    // Verify all steps were added
+    console.log("3. Verifying all steps were added correctly");
+    const goalSteps = await milestoneTracker._getSteps({ goal: goalId });
+    assertEquals(
+      "error" in goalSteps,
+      false,
+      "Getting steps should succeed",
+    );
+
+    if (!("error" in goalSteps)) {
+      assertEquals(
+        goalSteps.length,
+        5,
+        "Should have 5 steps",
+      );
+
+      // Verify step properties
+      goalSteps.forEach((step) => {
+        assertExists(step.id, "Step should have an ID");
+        assertExists(step.description, "Step should have a description");
+        assertExists(step.start, "Step should have a start date");
+        assertEquals(step.isComplete, false, "Step should start as incomplete");
+      });
+
+      console.log(
+        `   ✓ All ${goalSteps.length} steps verified with correct properties`,
+      );
+    }
+
+    // test out having completed some steps
+    console.log("4. Completing steps and verifying completion");
+    await milestoneTracker.completeStep({ step: stepIds[0] });
+    console.log(`   ✓ Completed step: "${steps[0]}"`);
+
+    await milestoneTracker.completeStep({ step: stepIds[1] });
+    console.log(`   ✓ Completed step: "${steps[1]}"`);
+
+    // verify completed and incomplete steps
+    console.log("5. Verifying step completion status");
+    const allSteps = await milestoneTracker._getSteps({ goal: goalId });
+    if (!("error" in allSteps)) {
+      const completedSteps = allSteps.filter((s) => s.isComplete);
+      const incompleteSteps = allSteps.filter((s) => !s.isComplete);
+
+      assertEquals(
+        completedSteps.length,
+        2,
+        "Should have 2 completed steps",
+      );
+
+      assertEquals(
+        incompleteSteps.length,
+        3,
+        "Should have 3 incomplete steps",
+      );
+
+      completedSteps.forEach((step) => {
+        assertExists(
+          step.completion,
+          "Completed step should have completion date",
+        );
+      });
+
+      console.log(
+        `   ✓ Found ${completedSteps.length} completed steps and ${incompleteSteps.length} incomplete steps`,
+      );
+    }
+
+    // Try to complete an already completed step
+    console.log("6. Testing re-completion of an already completed step");
+    const reCompleteResult = await milestoneTracker.completeStep({
+      step: stepIds[0],
+    });
+    assertEquals(
+      "error" in reCompleteResult,
+      true,
+      "Re-completing an already completed step should fail",
+    );
 
     console.log(
-      `   • Attempting to register a second user with the same username "${username}"`,
-    );
-    // should not allow another user to use the same username
-    const result2 = await concept.register({
-      username,
-      password: "differentpassword",
-    });
-
-    assertEquals(
-      "error" in result2,
-      true,
-      "Second registration with same username should fail",
+      `   - Re-completion correctly rejected for step: "${steps[0]}"`,
     );
 
-    // ensure correct error message
-    const { error } = result2 as { error: string };
-    assertEquals(
-      error,
-      `Username '${username}' is already taken.`,
-      "Should return username taken error message",
+    console.log(
+      "7. Action requirements satisfied: Manual step creation and completion behave correctly",
     );
-    console.log(`   ✓ Second registration failed with error: "${error}"`);
-    console.log("2. Username uniqueness requirement satisfied");
   } finally {
     await client.close();
   }
 });
 
-Deno.test("Action: authentication validates credentials and returns appropriate errors", async () => {
+Deno.test({
+  name: "Action: generateSteps produces quality steps via LLM",
+  ignore: !GEMINI_API_KEY,
+  fn: async () => {
+    const [db, client] = await testDb();
+    const milestoneTracker = new MilestoneTrackerConcept(db, GEMINI_API_KEY);
+
+    try {
+      console.log("1. Creating a podcast-focused goal");
+      const createResult = await milestoneTracker.createGoal({
+        user: userAlice,
+        description: "Learn to make a podcast about world issues",
+      });
+      assertEquals(
+        "error" in createResult,
+        false,
+        "Goal creation should succeed",
+      );
+      const goalId = (createResult as { goal: ID }).goal;
+      console.log(
+        `   ✓ Goal "Learn to make a podcast about world issues" created successfully`,
+      );
+
+      console.log("2. Generating steps using LLM");
+      const generateResult = await milestoneTracker.generateSteps({
+        goal: goalId,
+      });
+      assertEquals(
+        "error" in generateResult,
+        false,
+        "Step generation should succeed",
+      );
+
+      console.log("3. Received steps from the LLM");
+      if (!("error" in generateResult)) {
+        const stepIds = generateResult.steps; // IDs returned by generation
+        const details = await milestoneTracker._getSteps({ goal: goalId });
+
+        // Verify basic properties and counts
+        assertEquals(
+          stepIds.length >= 3,
+          true,
+          `Should generate at least 3 steps, got ${stepIds.length}`,
+        );
+        assertEquals(
+          details.length,
+          stepIds.length,
+          "Details should match number of generated steps",
+        );
+
+        // Print generated steps
+        console.log("4. Listing generated steps");
+        details.forEach((step, idx) => {
+          console.log(`   ${idx + 1}. ${step.description}`);
+        });
+
+        // Verify steps have required properties and quality
+        const vagueWords = [
+          "etc",
+          "maybe",
+          "possibly",
+          "and more",
+          "as necessary",
+        ];
+
+        for (const step of details) {
+          // Check length
+          const lengthValid = step.description.length >= 20 &&
+            step.description.length <= 300;
+          assertEquals(
+            lengthValid,
+            true,
+            `Step description should be between 20-300 chars (got ${step.description.length}): "${step.description}"`,
+          );
+
+          // Check for vague language
+          const hasVagueWords = vagueWords.some((word) =>
+            step.description.toLowerCase().includes(word)
+          );
+          assertEquals(
+            !hasVagueWords,
+            true,
+            `Step should not contain vague words: "${step.description}"`,
+          );
+
+          // Check for verbosity
+          const commaCount = (step.description.match(/,/g) || []).length;
+          assertEquals(
+            commaCount <= 6,
+            true,
+            `Step should not be too verbose (has ${commaCount} commas): "${step.description}"`,
+          );
+        }
+
+        console.log(
+          `   ✓ All ${details.length} generated steps pass quality validation`,
+        );
+
+        // remove one of the generated (incomplete) steps and verify
+        console.log("5. Removing one generated step");
+        const stepToRemove = details[details.length - 1].id;
+        const removeResult = await milestoneTracker.removeStep({
+          step: stepToRemove,
+        });
+        assertEquals(
+          "error" in removeResult,
+          false,
+          "Removing a generated incomplete step should succeed",
+        );
+        const afterRemoval = await milestoneTracker._getSteps({ goal: goalId });
+        assertEquals(
+          afterRemoval.length,
+          details.length - 1,
+          "Exactly one step should have been removed",
+        );
+        console.log(
+          `   ✓ Removed one generated step; ${afterRemoval.length} remaining`,
+        );
+
+        console.log(
+          "5. Action requirements satisfied: LLM-generated steps meet quality criteria",
+        );
+      }
+    } finally {
+      await client.close();
+    }
+  },
+});
+
+Deno.test("Action: robust error handling for invalid inputs and states", async () => {
   const [db, client] = await testDb();
-  const concept = new PasswordAuthenticationConcept(db);
+  const milestoneTracker = new MilestoneTrackerConcept(db, GEMINI_API_KEY);
 
   try {
-    console.log("1. Testing authentication credential validation");
-    const username = "secureuser";
-    const password = "correctpassword";
-
-    console.log(
-      `   • Registering test user "${username}" for authentication tests`,
-    );
-
-    const registerResult = await concept.register({
-      username,
-      password,
+    console.log("1. Testing for invalid goal ID");
+    const invalidGoalResult = await milestoneTracker.addStep({
+      goal: "goal:nonexistent" as ID,
+      description: "This should fail",
     });
-
-    assertNotEquals(
-      "error" in registerResult,
+    assertEquals(
+      "error" in invalidGoalResult,
       true,
-      "Registration should succeed",
-    );
-    console.log("   ✓ Test user registered successfully");
-
-    console.log(
-      "   • Attempting to authenticate with correct username but wrong password",
-    );
-    // expected to fail
-    const wrongPasswordResult = await concept.authenticate({
-      username,
-      password: "wrongpassword",
-    });
-
-    assertEquals(
-      "error" in wrongPasswordResult,
-      true,
-      "Authentication with wrong password should fail",
-    );
-
-    assertEquals(
-      (wrongPasswordResult as { error: string }).error,
-      "Invalid username or password.",
-      "Should return generic error for wrong password",
-    );
-    console.log("   ✓ Authentication correctly failed with wrong password");
-
-    console.log("   • Attempting to authenticate with non-existent username");
-    // expected to fail
-    const nonExistentResult = await concept.authenticate({
-      username: "nonexistent",
-      password,
-    });
-
-    assertEquals(
-      "error" in nonExistentResult,
-      true,
-      "Authentication with non-existent username should fail",
-    );
-
-    assertEquals(
-      (nonExistentResult as { error: string }).error,
-      "Invalid username or password.",
-      "Should return generic error for non-existent user",
+      "Adding step to non-existent goal should fail",
     );
     console.log(
-      "   ✓ Authentication correctly failed with non-existent username",
+      `   - Expected error received: "${
+        (invalidGoalResult as { error: string }).error
+      }"`,
     );
-    console.log("2. Authentication validation requirements satisfied");
+
+    console.log("2. Testing for empty step description");
+    // create a valid goal
+    const createResult = await milestoneTracker.createGoal({
+      user: userBob,
+      description: "Learn to code",
+    });
+    const goalId = (createResult as { goal: ID }).goal;
+
+    // add empty step
+    const emptyStepResult = await milestoneTracker.addStep({
+      goal: goalId,
+      description: "",
+    });
+    assertEquals(
+      "error" in emptyStepResult,
+      true,
+      "Empty step description should be rejected",
+    );
+    console.log(
+      `   - Expected error received: "${
+        (emptyStepResult as { error: string }).error
+      }"`,
+    );
+
+    console.log("3. Testing closing a non-existent goal");
+    const closeNonExistentResult = await milestoneTracker.closeGoal({
+      goal: "goal:nonexistent" as ID,
+    });
+    assertEquals(
+      "error" in closeNonExistentResult,
+      true,
+      "Closing non-existent goal should fail",
+    );
+    console.log(
+      `   - Expected error received: "${
+        (closeNonExistentResult as { error: string }).error
+      }"`,
+    );
+
+    console.log("4. Testing closing an already closed goal");
+    // close the valid goal we created
+    await milestoneTracker.closeGoal({ goal: goalId });
+
+    // close it again
+    const closeAgainResult = await milestoneTracker.closeGoal({
+      goal: goalId,
+    });
+    assertEquals(
+      "error" in closeAgainResult,
+      true,
+      "Closing an already closed goal should fail",
+    );
+    console.log(
+      `   - Expected error received: "${
+        (closeAgainResult as { error: string }).error
+      }"`,
+    );
+
+    console.log("5. Attempting to complete a non-existent step");
+    const completeNonExistentResult = await milestoneTracker.completeStep({
+      step: "step:nonexistent" as ID,
+    });
+    assertEquals(
+      "error" in completeNonExistentResult,
+      true,
+      "Completing non-existent step should fail",
+    );
+    console.log(
+      `   - Expected error received: "${
+        (completeNonExistentResult as { error: string }).error
+      }"`,
+    );
+
+    console.log(
+      "6. Action requirements satisfied: Invalid inputs and edge cases are handled correctly",
+    );
+  } finally {
+    await client.close();
+  }
+});
+
+Deno.test("Action: removeStep removes an incomplete step and validates constraints", async () => {
+  const [db, client] = await testDb();
+  const milestoneTracker = new MilestoneTrackerConcept(db, GEMINI_API_KEY);
+
+  try {
+    console.log("1. Create goal and add steps");
+    const createResult = await milestoneTracker.createGoal({
+      user: userAlice,
+      description: "Learn watercolor painting",
+    });
+    assertEquals("error" in createResult, false);
+    const goalId = (createResult as { goal: ID }).goal;
+    console.log(`   ✓ Goal "Learn watercolor painting" created successfully`);
+    const stepA = await milestoneTracker.addStep({
+      goal: goalId,
+      description: "Buy watercolor paints, brushes, and paper",
+    });
+    const stepB = await milestoneTracker.addStep({
+      goal: goalId,
+      description: "Learn basic wash and blending techniques",
+    });
+    assertEquals("error" in stepA, false);
+    assertEquals("error" in stepB, false);
+    const stepAId = (stepA as { step: ID }).step;
+    const stepBId = (stepB as { step: ID }).step;
+    console.log(`   ✓ Added 2 steps to goal`);
+
+    console.log("2. Remove one incomplete step");
+    const removeA = await milestoneTracker.removeStep({ step: stepAId });
+    assertEquals(
+      "error" in removeA,
+      false,
+      "Removing incomplete step should succeed",
+    );
+    const stepsAfterRemove = await milestoneTracker._getSteps({ goal: goalId });
+    assertEquals(
+      stepsAfterRemove.length,
+      1,
+      "Exactly 1 step should remain after removal",
+    );
+    console.log("   ✓ Incomplete step removed successfully");
+
+    console.log("3. Attempt to remove a completed step (should fail)");
+    await milestoneTracker.completeStep({ step: stepBId });
+    const removeCompleted = await milestoneTracker.removeStep({
+      step: stepBId,
+    });
+    assertEquals(
+      "error" in removeCompleted,
+      true,
+      "Removing completed step should fail",
+    );
+    console.log("   - Expected error when removing a completed step");
+
+    console.log("4. Attempt to remove a non-existent step (should fail)");
+    const removeMissing = await milestoneTracker.removeStep({
+      step: "step:missing" as ID,
+    });
+    assertEquals(
+      "error" in removeMissing,
+      true,
+      "Removing non-existent step should fail",
+    );
+    console.log("   - Expected error when removing a non-existent step");
+
+    console.log("5. Attempt to remove when goal is inactive (should fail)");
+    // add a fresh step, then close goal and try to remove it
+    const addC = await milestoneTracker.addStep({
+      goal: goalId,
+      description: "Practice gradients and color mixing",
+    });
+    const stepCId = (addC as { step: ID }).step;
+    await milestoneTracker.closeGoal({ goal: goalId });
+    const removeInactive = await milestoneTracker.removeStep({ step: stepCId });
+    assertEquals(
+      "error" in removeInactive,
+      true,
+      "Removing step from inactive goal should fail",
+    );
+    console.log(
+      "   - Expected error when removing a step from an inactive goal",
+    );
+
+    console.log(
+      "6. Action requirements satisfied: removeStep enforces constraints and removes incomplete steps",
+    );
   } finally {
     await client.close();
   }

@@ -40,9 +40,11 @@
         *   **requires**: the user to exist in the set of `Users`.
         *   **effects**: sets the `active` status of the user's profile to `false`, indicating the profile is closed.
 
+# file: src/concepts/UserProfileConcept.ts
+
+# final
 
 ```typescript
-// file: src/concepts/UserProfileConcept.ts
 import { Collection, Db } from "mongodb";
 import { Empty, ID } from "@utils/types.ts";
 import { freshID } from "@utils/database.ts";

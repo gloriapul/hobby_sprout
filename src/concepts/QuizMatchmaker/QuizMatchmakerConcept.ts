@@ -90,6 +90,7 @@ export default class QuizMatchmakerConcept {
     this.hobbyMatches = this.db.collection(PREFIX + "hobbyMatches");
   }
 
+  // TODO: don't need 
   /**
    * Initializes the LLM model with configuration from environment
    */
