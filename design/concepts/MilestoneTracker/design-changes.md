@@ -63,37 +63,6 @@ actions
   ```
 - **Reason for Addition**: Added to allow users to remove steps that are no longer relevant or were incorrectly created, providing more flexibility in managing their goals.
 
-### Additional Implementation Details
-
-1. **LLM Integration**:
-   - Added proper initialization of the Gemini LLM with API key validation
-   - Implemented step generation using the goal description to create detailed steps
-   - Added step quality validation to ensure generated steps are meaningful and actionable
-
-2. **Database Integration**: 
-   - Implemented MongoDB collections with proper namespacing using a prefix
-   - Separated `goals` and `steps` into distinct collections for better data organization
-
-3. **Type Safety**:
-   - Added TypeScript interfaces and types for better code reliability:
-     - `GoalDoc` interface for goal documents
-     - `StepDoc` interface for step documents
-
-4. **Error Handling**:
-   - Each action returns either the expected result or an error message
-   - Specific error messages for different failure scenarios:
-     - LLM initialization: `LLM service not available. Please provide a valid API key.`
-     - Quality validation: Detailed messages about step quality issues
-     - Goal not found: `Goal ${goal} not found or is not active.`
-     - Step not found: `Step ${step} not found.`
-     - Step already complete: `Step ${step} is already complete.` or `Cannot remove completed step ${step}.`
-
-5. **Query Methods**:
-   - Implemented query methods to support retrieving goal and step information:
-     - `_getGoal` to retrieve a user's active goal
-     - `_getSteps` to retrieve all steps for a goal
-     - `_getIncompleteSteps` and `_getCompletedSteps` to get filtered views of steps
-
 ## Evaluation Against Original Requirements
 
 The implemented MilestoneTracker concept fulfills all the original requirements while adding new features like the ability to remove steps. The core functionality remains intact: users can create goals, generate or add steps, mark steps as complete, and close goals when finished.

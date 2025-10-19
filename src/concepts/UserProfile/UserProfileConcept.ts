@@ -17,7 +17,7 @@ type Image = string; // Assuming Image will be a string (e.g., URL or base64 dat
  *   a profile Image
  */
 interface UserProfileDoc {
-  _id: User; // The ID of the user, provided externally
+  _id: User;
   active: boolean;
   displayname?: string; // Optional, as it might not be set initially
   profile?: Image; // Optional, as it might not be set initially
@@ -63,8 +63,8 @@ export default class UserProfileConcept {
    * and no initial display name or profile image. This action enables subsequent profile modifications.
    */
   async createProfile(
-    // passwordauthentication concept that takes care of account creation would be paired with this concept in a sync
-    // but since not implementing syncs yet as specified in the assignment, then not included
+    // passwordauthentication concept would be paired with this concept in a sync
+    // but since not implementing syncs yet as specified, then not included
     { user }: { user: User },
   ): Promise<Empty | { error: string }> {
     const existingProfile = await this.userProfiles.findOne({ _id: user });
@@ -121,7 +121,7 @@ export default class UserProfileConcept {
       return { error: `User profile for ${user} not found.` };
     }
     return {};
-    // image link since a user can just set their profile image to image of their hobby, which is already available online
+    // image address link since a user can just set their profile image to link of image of their hobby that they can find online
     // no reason for a user to upload their own image since now that communities is not being implemented, they do not need or want to show their face necessarily
   }
 

@@ -5,7 +5,7 @@ import UserProfileConcept from "./UserProfileConcept.ts";
 
 const userA = "user:Alice" as ID;
 
-Deno.test("Principle: User creates profile, adds personal information, and other users can see it", async () => {
+Deno.test("Principle: User creates profile, adds personal information", async () => {
   const [db, client] = await testDb();
   const profileConcept = new UserProfileConcept(db);
 

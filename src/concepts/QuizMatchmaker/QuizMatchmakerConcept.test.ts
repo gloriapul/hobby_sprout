@@ -12,7 +12,6 @@ const userB = "user:Bob" as ID;
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 
 // helper functions to reduce repetitive code
-
 async function submitAllResponses(quizConcept: QuizMatchmakerConcept, user: ID, answerPrefix = "Answer to"): Promise<void> {
   for (const q of QUIZ_QUESTIONS) {
     const result = await quizConcept.submitResponse({

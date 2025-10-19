@@ -179,8 +179,6 @@ export default class QuizMatchmakerConcept {
       };
     }
 
-    // Using a freshID for the _id of the user response document itself,
-    // as the primary key for UserResponses is implicitly (user, question) tuple.
     await this.userResponses.insertOne({
       _id: `response_${user}_${question}` as ID,
       user,
@@ -242,7 +240,7 @@ export default class QuizMatchmakerConcept {
    *
    * @returns An object containing the suggested matched hobby string, or an error message.
    *
-   * @requires The `user` has submitted responses for all *predefined* `Questions`. No `HobbyMatch` already exists for this `user`.
+   * @requires The `user` has submitted responses for all questions. No `HobbyMatch` already exists for this `user`.
    * @effects Uses an LLM to analyze the `user`'s `UserResponses` to `Questions`, generates a `matchedHobby` string, stores it, and returns it.
    */
   async generateHobbyMatch(

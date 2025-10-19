@@ -458,7 +458,7 @@ export default class MilestoneTrackerConcept {
   }): Promise<{ id: Goal; description: string; isActive: boolean }[]> {
     const goalDoc = await this.goals.findOne({ user, isActive: true });
     if (!goalDoc) {
-      return []; // Return empty array if no active goal found
+      return []; // return empty array if no active goal found
     }
     return [{
       id: goalDoc._id,

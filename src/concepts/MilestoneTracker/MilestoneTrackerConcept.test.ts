@@ -310,6 +310,7 @@ Deno.test({
           "as necessary",
         ];
 
+        // directly checks validity also apart from function for purpose of test
         for (const step of details) {
           // Check length
           const lengthValid = step.description.length >= 20 &&

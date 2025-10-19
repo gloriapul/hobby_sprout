@@ -113,7 +113,7 @@ interface StepDoc {
 export default class MilestoneTrackerConcept {
   private goals: Collection<GoalDoc>;
   private steps: Collection<StepDoc>;
-  llm: GeminiLLM | null = null; // public for testing
+  private llm: GeminiLLM | null = null;
   private apiKey: string | null = null;
 
   constructor(private readonly db: Db, apiKey?: string) {
@@ -519,7 +519,7 @@ export default class MilestoneTrackerConcept {
   }): Promise<{ id: Goal; description: string; isActive: boolean }[]> {
     const goalDoc = await this.goals.findOne({ user, isActive: true });
     if (!goalDoc) {
-      return []; // Return empty array if no active goal found
+      return []; // return empty array if no active goal found
     }
     return [{
       id: goalDoc._id,
@@ -603,5 +603,4 @@ export default class MilestoneTrackerConcept {
     }));
   }
 }
-
 ```

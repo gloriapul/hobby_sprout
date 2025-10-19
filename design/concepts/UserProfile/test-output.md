@@ -1,6 +1,6 @@
 # Test Results for UserProfile Concept
 
-Principle: User creates profile, adds personal information, and other users can see it ...
+Principle: User creates profile, adds personal information ...
 ------- output -------
 1. Creating a new user profile
    ✓ Profile created successfully for user: user:Alice

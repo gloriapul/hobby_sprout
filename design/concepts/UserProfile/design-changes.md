@@ -67,7 +67,7 @@ actions
     requires no profile for the given user already exists
     effects creates a new user profile record with active status
   ```
-- **Reason for Addition**: To explicitly initialize a user profile before setting properties on it. This clarifies the lifecycle and helps enforce data integrity.
+- **Reason for Addition**: To explicitly initialize a user profile before setting properties on it. This clarifies the lifecycle and helps enforce data integrity. This could be paired with PasswordAuthentication in a sync.
 
 ### Action: setHobby
 - **Original**: 
@@ -79,7 +79,7 @@ actions
     matching quiz to set of hobbies and marks it as active or just marks hobby from
     inactive to active if already in set
   ```
-- **Current**: Implemented with explicit error handling for duplicate active hobbies and non-existent user profiles, and removed the restriction on hobbies being from a preset list.
+- **Current**: Implemented with explicit error handling for duplicate active hobbies and non-existent user profiles, and removed the restriction on hobbies being from a preset list since my Communities concept won't be implemented anymore.
   ```typescript
   setHobby({ user, hobby }): Promise<Empty | { error: string }>
   ```
@@ -87,16 +87,7 @@ actions
   1. Added robust error handling while maintaining the core functionality
   2. Removed the constraint requiring hobbies to be from a preset list, allowing users to pursue any hobby they choose
 
-### Additional Helper Methods
-- Added query methods to support retrieving profile and hobby information:
-  ```typescript
-  _getUserProfile (user: User): (profile: UserProfileDoc)
-  _getUserHobbies (user: User): (hobby: { hobby: string, active: boolean })
-  _getActiveHobbies (user: User): (hobby: string)
-  ```
-- **Reason for Addition**: These methods support the principle of allowing users to see profile information by providing structured access to the data.
-
-## Implementation Details
+## Other Implementation Details
 
 1. **Data Storage**: Used MongoDB collections for `userProfiles` and `userHobbies` with proper namespacing via a prefix.
 
@@ -120,7 +111,7 @@ actions
 5. **Unrestricted Hobby Selection**:
    - Implementation allows users to specify any hobby without restrictions from a preset list
    - The `hobby` argument is treated as a simple string name with no validation against a predefined set
-   - This change was made because the Communities concept is no longer part of the implementation, removing the need for a predefined set of hobby communities
+   - This change was made because my Communities concept is no longer part of the implementation, removing the need for a predefined set of hobby communities
 
 ## Evaluation Against Original Requirements
 

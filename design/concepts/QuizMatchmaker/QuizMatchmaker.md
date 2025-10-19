@@ -12,8 +12,7 @@
 
 *   **concept**: QuizMatchmaker \[User]
 *   **purpose**: To match users with suitable hobbies based on their responses to a *predefined, fixed* quiz.
-*   **principle**: If a user provides answers to all predefined quiz questions, then the system will use an AI (LLM) to analyze these responses and suggest a specific hobby that aligns with the user's interests, which the user can then view.
-*   **Notes**: The quiz questions are inherent to the concept's definition and are not managed through actions. They are fixed and cannot be added, removed, or modified after deployment.
+*   **principle**: If a user provides answers to all predefined quiz questions, then the system will use an LLM to analyze these responses and suggest a specific hobby that aligns with the user's interests, which the user can then view.
 *   **state**:
     *   A set of `UserResponses` with
         *   a `user` of type `User`
@@ -230,8 +229,6 @@ export default class QuizMatchmakerConcept {
       };
     }
 
-    // Using a freshID for the _id of the user response document itself,
-    // as the primary key for UserResponses is implicitly (user, question) tuple.
     await this.userResponses.insertOne({
       _id: `response_${user}_${question}` as ID,
       user,
@@ -293,7 +290,7 @@ export default class QuizMatchmakerConcept {
    *
    * @returns An object containing the suggested matched hobby string, or an error message.
    *
-   * @requires The `user` has submitted responses for all *predefined* `Questions`. No `HobbyMatch` already exists for this `user`.
+   * @requires The `user` has submitted responses for all questions. No `HobbyMatch` already exists for this `user`.
    * @effects Uses an LLM to analyze the `user`'s `UserResponses` to `Questions`, generates a `matchedHobby` string, stores it, and returns it.
    */
   async generateHobbyMatch(
