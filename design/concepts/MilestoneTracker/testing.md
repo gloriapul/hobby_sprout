@@ -17,103 +17,66 @@ const userB = "user:bob" as ID;
 
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 
-Deno.test("Principle: Goal lifecycle and input validation", async () => {
+Deno.test("Principle: Goal lifecycle and input validation (with hobby)", async () => {
   const [db, client] = await testDb();
   const milestoneTracker = new MilestoneTrackerConcept(db, GEMINI_API_KEY);
-
   try {
-    console.log("1. Testing empty goal description validation");
-    const emptyResult = await milestoneTracker.createGoal({
-      user: userB,
-      description: "",
-    });
-    assertEquals(
-      "error" in emptyResult,
-      true,
-      "Empty description should be rejected",
-    );
-    console.log(
-      `   - Empty goal rejected with error: "${
-        (emptyResult as { error: string }).error
-      }"`,
-    );
-
-    console.log("2. Creating a valid goal");
-    const createResult = await milestoneTracker.createGoal({
+    // Create two goals for the same user, different hobbies
+    const result1 = await milestoneTracker.createGoal({
       user: userA,
       description: "Learn digital photography",
+      hobby: "Photography",
     });
     assertEquals(
-      "error" in createResult,
+      "error" in result1,
       false,
-      "Valid goal creation should succeed",
+      "Should create goal for Photography",
     );
-    const goalId = (createResult as { goal: ID }).goal;
-    console.log(`   ✓ Goal "Learn digital photography" created successfully`);
+    const goalId1 = (result1 as { goal: ID }).goal;
 
-    console.log("3. Testing duplicate goal validation");
-    const duplicateResult = await milestoneTracker.createGoal({
+    // Should not allow duplicate active goal for same user and hobby
+    const duplicate = await milestoneTracker.createGoal({
       user: userA,
-      description: "Learn painting",
+      description: "Master digital photography",
+      hobby: "Photography",
     });
     assertEquals(
-      "error" in duplicateResult,
+      "error" in duplicate,
       true,
-      "Creating a second active goal should fail",
-    );
-    console.log(
-      `   - Duplicate goal correctly rejected with error: "${
-        (duplicateResult as { error: string }).error
-      }"`,
+      "Should not allow duplicate active goal for same hobby",
     );
 
-    console.log("4. Testing closing a goal");
-    await milestoneTracker.closeGoal({ goal: goalId });
-    console.log(`   ✓ Goal closed successfully`);
-
-    console.log("5. Testing non-existent step completion");
-    const invalidResult = await milestoneTracker.completeStep({
-      step: "step:nonexistent" as ID,
-    });
-    assertEquals(
-      "error" in invalidResult,
-      true,
-      "Completing non-existent step should fail",
-    );
-    console.log(
-      `   - Non-existent step completion correctly rejected: "${
-        (invalidResult as { error: string }).error
-      }"`,
-    );
-
-    console.log("6. Creating another goal after closing the previous one");
-    const newGoalResult = await milestoneTracker.createGoal({
+    // Should allow a different hobby
+    const result2 = await milestoneTracker.createGoal({
       user: userA,
-      description: "Learn to cook Italian food",
+      description: "Learn watercolor painting",
+      hobby: "Painting",
     });
-    assertEquals(
-      "error" in newGoalResult,
-      false,
-      "Creating goal after closing previous one should succeed",
-    );
-    console.log(
-      `   ✓ New goal created successfully after closing previous one`,
-    );
+    assertEquals("error" in result2, false, "Should create goal for Painting");
+    const goalId2 = (result2 as { goal: ID }).goal;
 
-    console.log("7. Closing the new goal");
-    const closeResult = await milestoneTracker.closeGoal({
-      goal: (newGoalResult as { goal: ID }).goal,
+    // Query all active goals for userA
+    const allGoals = await milestoneTracker._getGoal({ user: userA });
+    assertEquals(allGoals.length, 2, "Should have 2 active goals for userA");
+
+    // Filter by hobby
+    const photoGoals = await milestoneTracker._getGoal({
+      user: userA,
+      hobby: "Photography",
     });
-    assertEquals(
-      "error" in closeResult,
-      false,
-      "Closing goal should succeed",
-    );
-    console.log(`   ✓ Goal closed successfully`);
+    assertEquals(photoGoals.length, 1, "Should return 1 goal for Photography");
+    assertEquals(photoGoals[0].hobby, "Photography");
 
-    console.log(
-      "8. Principle satisfied: Goal lifecycle and input validation behaviors are enforced",
-    );
+    const paintingGoals = await milestoneTracker._getGoal({
+      user: userA,
+      hobby: "Painting",
+    });
+    assertEquals(paintingGoals.length, 1, "Should return 1 goal for Painting");
+    assertEquals(paintingGoals[0].hobby, "Painting");
+
+    // Clean up
+    await milestoneTracker.closeGoal({ goal: goalId1 });
+    await milestoneTracker.closeGoal({ goal: goalId2 });
   } finally {
     await client.close();
   }
@@ -128,6 +91,7 @@ Deno.test("Action: addStep/completeStep manage manual steps and statuses", async
     const createResult = await milestoneTracker.createGoal({
       user: userA,
       description: "Learn to play guitar",
+      hobby: "Guitar",
     });
     assertEquals(
       "error" in createResult,
@@ -266,6 +230,7 @@ Deno.test({
       const createResult = await milestoneTracker.createGoal({
         user: userA,
         description: "Learn to make a podcast about world issues",
+        hobby: "Podcasting",
       });
       assertEquals(
         "error" in createResult,
@@ -410,6 +375,7 @@ Deno.test("Action: robust error handling for invalid inputs and states", async (
     const createResult = await milestoneTracker.createGoal({
       user: userB,
       description: "Learn to code",
+      hobby: "Programming",
     });
     const goalId = (createResult as { goal: ID }).goal;
 
@@ -495,6 +461,7 @@ Deno.test("Action: removeStep removes an incomplete step and validates constrain
     const createResult = await milestoneTracker.createGoal({
       user: userA,
       description: "Learn watercolor painting",
+      hobby: "Painting",
     });
     assertEquals("error" in createResult, false);
     const goalId = (createResult as { goal: ID }).goal;

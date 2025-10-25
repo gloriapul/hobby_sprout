@@ -22,6 +22,7 @@ interface GoalDoc {
   _id: Goal;
   user: User; // who owns this goal
   description: string;
+  hobby: string; // hobby associated with this goal
   isActive: boolean;
 }
 
@@ -125,20 +126,29 @@ export default class MilestoneTrackerConcept {
   async createGoal({
     user,
     description,
+    hobby,
   }: {
     user: User;
     description: string;
+    hobby: string;
   }): Promise<{ goal: Goal } | { error: string }> {
     if (!description || description.trim() === "") {
       return { error: "Goal description cannot be empty." };
     }
+    if (!hobby || hobby.trim() === "") {
+      return { error: "Hobby cannot be empty when creating a goal." };
+    }
 
-    // check if an active goal already exists for this user
-    const existingGoal = await this.goals.findOne({ user, isActive: true });
+    // check if an active goal already exists for this user and hobby
+    const existingGoal = await this.goals.findOne({
+      user,
+      hobby,
+      isActive: true,
+    });
     if (existingGoal) {
       return {
         error:
-          `An active goal already exists for user ${user}. Please close it first.`,
+          `An active goal already exists for user ${user} and hobby ${hobby}. Please close it first.`,
       };
     }
 
@@ -147,6 +157,7 @@ export default class MilestoneTrackerConcept {
       _id: newGoalId,
       user,
       description: description.trim(),
+      hobby: hobby.trim(),
       isActive: true,
     };
 
@@ -445,26 +456,33 @@ export default class MilestoneTrackerConcept {
   }
 
   /**
-   * _getGoal (user: User): (goal: {id: Goal, description: String, isActive: Boolean})[]
+   * _getGoal (user: User, hobby?: string): (goal: {id: Goal, description: String, hobby: string, isActive: Boolean})[]
    *
    * @requires `user` exists.
    *
-   * @effects returns an array containing the active `Goal` (if any) for the `user`, including its `id`, `description`, and `isActive` status.
+   * @effects returns an array containing the active `Goal`(s) for the `user` (optionally filtered by hobby), including its `id`, `description`, `hobby`, and `isActive` status.
    */
   async _getGoal({
     user,
+    hobby,
   }: {
     user: User;
-  }): Promise<{ id: Goal; description: string; isActive: boolean }[]> {
-    const goalDoc = await this.goals.findOne({ user, isActive: true });
-    if (!goalDoc) {
-      return []; // return empty array if no active goal found
-    }
-    return [{
+    hobby?: string;
+  }): Promise<
+    { id: Goal; description: string; hobby: string; isActive: boolean }[]
+  > {
+    const query: { user: User; isActive: boolean; hobby?: string } = {
+      user,
+      isActive: true,
+    };
+    if (hobby) query.hobby = hobby;
+    const goalDocs = await this.goals.find(query).toArray();
+    return goalDocs.map((goalDoc) => ({
       id: goalDoc._id,
       description: goalDoc.description,
+      hobby: goalDoc.hobby,
       isActive: goalDoc.isActive,
-    }];
+    }));
   }
 
   /**
