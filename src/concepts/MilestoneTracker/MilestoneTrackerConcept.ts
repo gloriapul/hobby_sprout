@@ -83,9 +83,9 @@ export default class MilestoneTrackerConcept {
    * @returns error message if validation fails, undefined if successful
    */
   private validateStepQuality(steps: string[]): string | undefined {
-    // 1. Length validation (20-300 characters)
+    // 1. Length validation (10-300 characters)
     for (const step of steps) {
-      if (step.length < 20) {
+      if (step.length < 10) {
         return `Step too brief: "${step}". Provide more detail to clarify the action.`;
       }
       if (step.length > 300) {
