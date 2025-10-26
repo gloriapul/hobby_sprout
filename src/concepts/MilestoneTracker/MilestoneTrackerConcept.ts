@@ -215,12 +215,13 @@ export default class MilestoneTrackerConcept {
       const llmPrompt = `
         You are a helpful AI assistant that creates a recommended plan of clear steps for people looking to work on a hobby.
 
+        The user's hobby is: "${targetGoal.hobby}"
         Create a structured step-by-step plan for this goal: "${targetGoal.description}"
 
         Response Requirements:
         1. Return ONLY a single-line JSON array of strings
         2. Each string should be a specific, complete, measurable, and actionable step
-        3. Step must be relevant to the goal and feasible for an average person, should not be overly ambitious or vague
+        3. Steps must be relevant to the hobby and the goal, and feasible for an average person (not overly ambitious or vague)
         4. Only contain necessary steps to achieve the goal, avoid filler steps and be mindful of number of steps generated
         5. Steps must be in logical order
         6. Do NOT use line breaks or extra whitespace

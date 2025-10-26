@@ -4,12 +4,13 @@ Principle: User answers personality quiz and receives hobby match ...
 ------- output -------
 1. Submitting answers to all questions
 2. Generating hobby match from answers
-   ✓ LLM suggested hobby: "Woodworking"
+   ✓ LLM suggested hobby: "Board Games"
 3. Verifying match is stored
    ✓ Match stored correctly in database
 4. Principle satisfied: User can answer the quiz and receive a stored hobby match
 ----- output end -----
 Principle: User answers personality quiz and receives hobby match ... ok (1s)
+Action: deleteHobbyMatchById deletes only the selected match ... ok (1s)
 Action: generateHobbyMatch produces meaningful hobby match via LLM ...
 ------- output -------
 1. Submitting thoughtful answers to all questions
@@ -17,9 +18,9 @@ Action: generateHobbyMatch produces meaningful hobby match via LLM ...
    ✓ LLM suggested hobby: "Hiking"
 3. Verifying match is stored in database
    ✓ Match stored correctly in database
-4. Verifying constraints: Cannot generate second match
-   ✓ Second match properly rejected: "User user:Bob already has a generated hobby match: "Hiking"."
-5. Action requirements satisfied: generateHobbyMatch returns a single, stored hobby match
+4. Generating a second match (should succeed and be added to user's match list)
+   ✓ Second match generated: "Hiking"
+5. Action requirements satisfied: generateHobbyMatch allows multiple matches per user and stores each match.
 ----- output end -----
 Action: generateHobbyMatch produces meaningful hobby match via LLM ... ok (2s)
 Action: submitResponse requirements and restrictions ...
@@ -34,7 +35,7 @@ Action: submitResponse requirements and restrictions ...
    ✓ Duplicate submission rejected as expected
 5. Action requirements satisfied: submitResponse validates question IDs and prevents duplicates
 ----- output end -----
-Action: submitResponse requirements and restrictions ... ok (844ms)
+Action: submitResponse requirements and restrictions ... ok (1s)
 Action: updateResponse functionality and restrictions ...
 ------- output -------
 1. Get a valid question for testing
@@ -47,16 +48,16 @@ Action: updateResponse functionality and restrictions ...
    ✓ Update verified in stored responses
 5. Action requirements satisfied: updateResponse enforces preconditions and updates stored response
 ----- output end -----
-Action: updateResponse functionality and restrictions ... ok (746ms)
+Action: updateResponse functionality and restrictions ... ok (662ms)
 Action: deleteHobbyMatch functionality and integration with full lifecycle ...
 ------- output -------
 1. Submitting responses for all quiz questions
    ✓ All responses submitted successfully
 2. Initializing LLM with API key
 3. Generating initial hobby match
-   ✓ Generated hobby: "Coding"
-4. Attempting to update a response (should fail with existing match)
-   ✓ Update correctly rejected: "Cannot update response for user user:TestUser as a hobby match has already been generated. Delete the match first if you wish to update answers."
+   ✓ Generated hobby: "Woodworking"
+4. Attempting to update a response (should succeed even if matches exist)
+   ✓ Update succeeded even though matches exist
 5. Deleting the hobby match
    ✓ Match successfully deleted
 6. Verifying match was actually removed
@@ -64,14 +65,14 @@ Action: deleteHobbyMatch functionality and integration with full lifecycle ...
 7. Now updating a response (should succeed after match deletion)
    ✓ Response successfully updated after match deletion
 8. Generating a new hobby match after updates
-   ✓ New generated hobby: "Creative Writing"
+   ✓ New generated hobby: "Photography"
 9. Attempting to delete non-existent match (for a different user)
-   ✓ Non-existent match deletion correctly rejected: "No hobby match exists for user user:NonExistent."
+   ✓ Non-existent match deletion correctly rejected: "No hobby matches exist for user user:NonExistent."
 10. Action requirements satisfied: deleteHobbyMatch enables the full response-match-delete-update-match lifecycle
 ----- output end -----
 Action: deleteHobbyMatch functionality and integration with full lifecycle ... ok (2s)
 
-ok | 5 passed | 0 failed (7s)
+ok | 6 passed | 0 failed (9s)
 
 ## Summary
 - Quiz response collection and hobby matching work correctly

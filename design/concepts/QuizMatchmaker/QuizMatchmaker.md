@@ -12,45 +12,53 @@
 
 *   **concept**: QuizMatchmaker \[User]
 *   **purpose**: To match users with suitable hobbies based on their responses to a *predefined, fixed* quiz.
-*   **principle**: If a user provides answers to all predefined quiz questions, then the system will use an LLM to analyze these responses and suggest a specific hobby that aligns with the user's interests, which the user can then view.
+*   **principle**: If a user provides answers to all predefined quiz questions, then the system will use an LLM to analyze these responses and suggest a specific hobby that aligns with the user's interests. The user can generate and view multiple hobby matches over time, each stored as a separate match.
 *   **state**:
-    *   A set of `UserResponses` with
-        *   a `user` of type `User`
-        *   a `question` of type `Question` (referencing a predefined question ID)
-        *   an `answerText` of type `String`
-    *   A set of `HobbyMatches` with
-        *   a `user` of type `User`
-        *   a `matchedHobby` of type `String`
-        *   a `matchedAt` of type `DateTime`
+  *   A set of `UserResponses` with
+    *   a `user` of type `User`
+    *   a `question` of type `Question` (referencing a predefined question ID)
+    *   an `answerText` of type `String`
+  *   A set of `HobbyMatches` with
+    *   a `user` of type `User`
+    *   a `matchedHobby` of type `String`
+    *   a `matchedAt` of type `DateTime`
+    *   an `_id` of type `ID` (unique for each match)
 *   **actions**:
-    *   `submitResponse (user: User, question: Question, answerText: String)`
-        *   **requires**: The `question` ID must correspond to one of the predefined questions. The `user` has not yet submitted a response for this specific `question`.
-        *   **effects**: Records the `user`'s `answerText` for the given `question`.
-    *   `updateResponse (user: User, question: Question, newAnswerText: String)`
-        *   **requires**: The `question` ID must correspond to one of the predefined questions. The `user` has already submitted a response for this specific `question`. No `HobbyMatch` exists for this `user`.
-        *   **effects**: Updates the `user`'s `answerText` for the given `question`.
-    *   `generateHobbyMatch (user: User): (matchedHobby: String)`
-        *   **requires**: The `user` has submitted responses for *all* predefined `Questions`. No `HobbyMatch` already exists for this `user`.
-        *   **effects**: Uses an LLM to analyze the `user`'s `UserResponses` to `Questions`, generates a `matchedHobby` string, stores it, and returns it.
-  *   `deleteHobbyMatch (user: User)`
-    *   **requires**: A `HobbyMatch` exists for this `user`.
-    *   **effects**: Deletes the existing `HobbyMatch` so the user can update responses and generate a new match.
+  *   `submitResponse (user: User, question: Question, answerText: String)`
+    *   **requires**: The `question` ID must correspond to one of the predefined questions. The `user` has not yet submitted a response for this specific `question`.
+    *   **effects**: Records the `user`'s `answerText` for the given `question`.
+  *   `updateResponse (user: User, question: Question, newAnswerText: String)`
+    *   **requires**: The `question` ID must correspond to one of the predefined questions. The `user` has already submitted a response for this specific `question`.
+    *   **effects**: Updates the `user`'s `answerText` for the given `question`.
+  *   `generateHobbyMatch (user: User): (matchedHobby: String)`
+    *   **requires**: The `user` has submitted responses for *all* predefined `Questions`.
+    *   **effects**: Uses an LLM to analyze the `user`'s `UserResponses` to `Questions`, generates a `matchedHobby` string, stores it as a new match, and returns it. Users can generate multiple matches over time.
+  *   `deleteHobbyMatches (user: User)`
+    *   **requires**: At least one `HobbyMatch` exists for this `user`.
+    *   **effects**: Deletes all `HobbyMatches` for the user.
+  *   `deleteHobbyMatchById (user: User, matchId: ID)`
+    *   **requires**: The specified `HobbyMatch` exists for this `user`.
+    *   **effects**: Deletes only the specified `HobbyMatch` for the user.
 *   **queries**:
-    *   `_getQuestions (): (question: { _id: Question, text: String, order: Number })[]`
-        *   **requires**: true
-        *   **effects**: Returns an array of all *predefined* quiz questions, ordered by `order`.
-    *   `_getUserResponses (user: User): (response: { question: Question, answerText: String })[]`
-        *   **requires**: The `user` exists.
-        *   **effects**: Returns all `UserResponses` submitted by the `user`.
-    *   `_getMatchedHobby (user: User): (hobby: String)[]`
-        *   **requires**: The `user` exists and has a `HobbyMatch`.
-        *   **effects**: Returns the `matchedHobby` for the `user`.
+  *   `_getQuestions (): (question: { _id: Question, text: String, order: Number })[]`
+    *   **requires**: true
+    *   **effects**: Returns an array of all *predefined* quiz questions, ordered by `order`.
+  *   `_getUserResponses (user: User): (response: { question: Question, answerText: String })[]`
+    *   **requires**: The `user` exists.
+    *   **effects**: Returns all `UserResponses` submitted by the `user`.
+  *   `_getMatchedHobby (user: User): (hobby: String)[]`
+    *   **requires**: The `user` exists and has at least one `HobbyMatch`.
+    *   **effects**: Returns the most recent `matchedHobby` for the `user`.
+  *   `_getAllHobbyMatches (user: User): (match: { id: ID, hobby: String, matchedAt: DateTime })[]`
+    *   **requires**: The `user` exists and has at least one `HobbyMatch`.
+    *   **effects**: Returns all hobby matches for the user, most recent first.
 
 
 ```typescript
 import { Collection, Db } from "mongodb";
 import { Empty, ID } from "@utils/types.ts";
 import { GeminiLLM } from "@utils/gemini-llm.ts";
+import { freshID } from "@utils/database.ts";
 
 // Collection prefix to ensure namespace separation
 const PREFIX = "QuizMatchmaker" + ".";
@@ -122,7 +130,8 @@ interface UserResponseDoc {
  * Each document represents the final hobby match for a user.
  */
 interface HobbyMatchDoc {
-  _id: User; // The ID of the user, acting as the primary key for their hobby match
+  _id: ID; // Unique ID for this match (freshID)
+  user: User; // The user who took the quiz
   matchedHobby: string; // The hobby suggested by the LLM
   matchedAt: Date; // Timestamp when the match was generated
 }
@@ -151,7 +160,8 @@ export default class QuizMatchmakerConcept {
    */
   private sanitizeHobbyName(raw: string): string | undefined {
     // take first non-empty line
-    const firstLine = (raw.split(/\r?\n/).find((l) => l.trim().length > 0) || "").trim();
+    const firstLine =
+      (raw.split(/\r?\n/).find((l) => l.trim().length > 0) || "").trim();
     if (!firstLine) return undefined;
 
     // strip surrounding backticks or quotes
@@ -161,7 +171,9 @@ export default class QuizMatchmakerConcept {
     s = s.replace(/^(suggested\s+hobby|hobby)\s*:\s*/i, "");
 
     // if multiple suggestions separated by comma or ' and ', pick the first piece
-    const splitDelim = s.includes(",") ? "," : (/(\s+and\s+)/i.test(s) ? /\s+and\s+/i : null);
+    const splitDelim = s.includes(",")
+      ? ","
+      : (/(\s+and\s+)/i.test(s) ? /\s+and\s+/i : null);
     if (splitDelim) {
       s = s.split(splitDelim)[0].trim();
     }
@@ -240,7 +252,7 @@ export default class QuizMatchmakerConcept {
 
   /**
    * Action: Updates an existing response from a user to a specific quiz question.
-   * 
+   *
    * @returns An empty object for success, or an error message.
    *
    * @requires The `question` ID must correspond to one of the predefined questions. The `user` has already submitted a response for this specific `question`. No `HobbyMatch` exists for this `user`.
@@ -264,6 +276,7 @@ export default class QuizMatchmakerConcept {
       user,
       question,
     });
+
     if (!existingResponse) {
       return {
         error:
@@ -271,14 +284,7 @@ export default class QuizMatchmakerConcept {
       };
     }
 
-    const existingMatch = await this.hobbyMatches.findOne({ _id: user });
-    if (existingMatch) {
-      return {
-        error:
-          `Cannot update response for user ${user} as a hobby match has already been generated. Delete the match first if you wish to update answers.`,
-      };
-    }
-
+    // @requires The `question` ID must correspond to one of the predefined questions. The `user` has already submitted a response for this specific `question`.
     await this.userResponses.updateOne({ user, question }, {
       $set: { answerText: newAnswerText },
     });
@@ -301,14 +307,6 @@ export default class QuizMatchmakerConcept {
       return {
         error:
           `User ${user} has not answered all ${QUIZ_QUESTIONS.length} questions. Please submit responses for all questions.`,
-      };
-    }
-
-    const existingMatch = await this.hobbyMatches.findOne({ _id: user });
-    if (existingMatch) {
-      return {
-        error:
-          `User ${user} already has a generated hobby match: "${existingMatch.matchedHobby}".`,
       };
     }
 
@@ -343,7 +341,8 @@ export default class QuizMatchmakerConcept {
       }
 
       await this.hobbyMatches.insertOne({
-        _id: user,
+        _id: freshID(),
+        user,
         matchedHobby,
         matchedAt: new Date(),
       });
@@ -384,32 +383,68 @@ export default class QuizMatchmakerConcept {
    * @requires The `user` exists and has a `HobbyMatch`.
    * @effects Returns the `matchedHobby` for the `user`.
    */
-  async _getMatchedHobby(
+  /**
+   * Query: Retrieves all hobby matches for a specific user, most recent first.
+   * @returns Array of matches with hobby and timestamp, or error if none found.
+   */
+  async _getAllHobbyMatches(
     { user }: { user: User },
-  ): Promise<{ hobby: string }[] | { error: string }> {
-    const match = await this.hobbyMatches.findOne({ _id: user });
-    if (!match) {
-      return { error: `No hobby match found for user ${user}.` };
+  ): Promise<{ hobby: string; matchedAt: Date }[] | { error: string }> {
+    const matches = await this.hobbyMatches.find({ user }).sort({
+      matchedAt: -1,
+    }).toArray();
+    if (!matches.length) {
+      return { error: `No hobby matches found for user ${user}.` };
     }
-    return [{ hobby: match.matchedHobby }];
+    return matches.map((m) => ({
+      id: m._id,
+      hobby: m.matchedHobby,
+      matchedAt: m.matchedAt,
+    }));
   }
 
   /**
-   * Action: Deletes an existing hobby match for a user (to allow re-matching).
-   *
-   * @returns Empty on success or an error string if none existed.
-   *
-   * @requires A HobbyMatch for `user` exists.
-   * @effects Removes the HobbyMatch for `user`, allowing answers to be updated and a new match generated.
+   * Query: Retrieves the most recent hobby match for a specific user.
+   * @returns The latest matched hobby, or error if none found.
    */
-  async deleteHobbyMatch(
+  async _getMatchedHobby(
+    { user }: { user: User },
+  ): Promise<{ hobby: string }[] | { error: string }> {
+    const match = await this.hobbyMatches.find({ user }).sort({ matchedAt: -1 })
+      .limit(1).toArray();
+    if (!match.length) {
+      return { error: `No hobby match found for user ${user}.` };
+    }
+
+    return [{ hobby: match[0].matchedHobby }];
+  }
+
+  /**
+   * Action: Deletes all hobby matches for a user (to allow a full reset).
+   */
+  async deleteHobbyMatches(
     { user }: { user: User },
   ): Promise<Empty | { error: string }> {
-    const existingMatch = await this.hobbyMatches.findOne({ _id: user });
-    if (!existingMatch) {
-      return { error: `No hobby match exists for user ${user}.` };
+    const result = await this.hobbyMatches.deleteMany({ user });
+    if (result.deletedCount === 0) {
+      return { error: `No hobby matches exist for user ${user}.` };
     }
-    await this.hobbyMatches.deleteOne({ _id: user });
+    return {};
+  }
+
+  /**
+   * Action: Deletes a specific hobby match for a user by match ID.
+   * @param user The user who owns the match.
+   * @param matchId The unique ID of the hobby match to delete.
+   * @returns Empty object if successful, or an error message if not found.
+   */
+  async deleteHobbyMatchById(
+    { user, matchId }: { user: User; matchId: ID },
+  ): Promise<Empty | { error: string }> {
+    const result = await this.hobbyMatches.deleteOne({ user, _id: matchId });
+    if (result.deletedCount === 0) {
+      return { error: `No hobby match with ID ${matchId} exists for user ${user}.` };
+    }
     return {};
   }
 }

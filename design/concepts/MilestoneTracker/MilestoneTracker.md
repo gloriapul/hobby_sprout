@@ -45,7 +45,7 @@
   *   `_getGoal(user: User, hobby?: String): (goal: {id: Goal, description: String, hobby: String, isActive: Boolean})[]`
     *   **requires**: `user` exists.
     *   **effects**: Returns an array containing the active `Goal`(s) for the `user` (optionally filtered by `hobby`), including its `id`, `description`, `hobby`, and `isActive` status.
-  *   `getAllGoals(user: User, hobby?: String): (goal: {id: Goal, description: String, hobby: String, isActive: Boolean})[]`
+  *   `_getAllGoals(user: User, hobby?: String): (goal: {id: Goal, description: String, hobby: String, isActive: Boolean})[]`
     *   **requires**: `user` exists.
     *   **effects**: Returns an array containing all goals (active and inactive) for the `user` (optionally filtered by `hobby`), including its `id`, `description`, `hobby`, and `isActive` status.
   *   `_getSteps(goal: Goal): (step: {id: Step, description: String, start: Date, completion: Date?, isComplete: Boolean})[]`
@@ -280,12 +280,13 @@ export default class MilestoneTrackerConcept {
       const llmPrompt = `
         You are a helpful AI assistant that creates a recommended plan of clear steps for people looking to work on a hobby.
 
+        The user's hobby is: "${targetGoal.hobby}"
         Create a structured step-by-step plan for this goal: "${targetGoal.description}"
 
         Response Requirements:
         1. Return ONLY a single-line JSON array of strings
         2. Each string should be a specific, complete, measurable, and actionable step
-        3. Step must be relevant to the goal and feasible for an average person, should not be overly ambitious or vague
+        3. Steps must be relevant to the hobby and the goal, and feasible for an average person (not overly ambitious or vague)
         4. Only contain necessary steps to achieve the goal, avoid filler steps and be mindful of number of steps generated
         5. Steps must be in logical order
         6. Do NOT use line breaks or extra whitespace
