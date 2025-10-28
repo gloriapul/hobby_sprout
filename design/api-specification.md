@@ -680,91 +680,23 @@ This document provides the REST API specification for all concepts in the HobbyS
 
 **Purpose:** To match users with suitable hobbies based on their responses to a predefined, fixed quiz.
 
-### POST /api/QuizMatchmaker/submitResponse
-
-**Description:** Records a user's response to a quiz question.
-
-**Requirements:**
-- The question ID must correspond to one of the predefined questions
-- The user has not yet submitted a response for this specific question
-
-**Effects:**
-- Records the user's answerText for the given question
-
-**Request Body:**
-```json
-{
-  "user": "string",
-  "question": "string",
-  "answerText": "string"
-}
-```
-
-**Success Response Body:**
-```json
-{}
-```
-
-**Error Response Body:**
-```json
-{
-  "error": "string"
-}
-```
-
----
-
-### POST /api/QuizMatchmaker/updateResponse
-
-**Description:** Updates a user's existing response to a quiz question.
-
-**Requirements:**
-- The question ID must correspond to one of the predefined questions
-- The user has already submitted a response for this specific question
-- No HobbyMatch exists for this user
-
-**Effects:**
-- Updates the user's answerText for the given question
-
-**Request Body:**
-```json
-{
-  "user": "string",
-  "question": "string",
-  "newAnswerText": "string"
-}
-```
-
-**Success Response Body:**
-```json
-{}
-```
-
-**Error Response Body:**
-```json
-{
-  "error": "string"
-}
-```
-
----
-
 ### POST /api/QuizMatchmaker/generateHobbyMatch
 
-**Description:** Generates a hobby match for a user based on their quiz responses.
+**Description:** Generates a hobby match for a user based on their answers to all quiz questions (batch submission).
 
 **Requirements:**
-- The user has submitted responses for all predefined Questions
-- No HobbyMatch already exists for this user
+- The answers array must have exactly 5 strings, corresponding to the predefined questions
+- The LLM must be initialized
 
 **Effects:**
-- Uses an LLM to analyze the user's responses and generate a matched hobby
-- Stores the match and returns it
+- Uses an LLM to analyze the answers, generates a matched hobby, stores it as a new match, and returns it
+- Users can generate multiple matches over time
 
 **Request Body:**
 ```json
 {
-  "user": "string"
+  "user": "string",
+  "answers": ["string", "string", "string", "string", "string"]
 }
 ```
 
@@ -784,20 +716,52 @@ This document provides the REST API specification for all concepts in the HobbyS
 
 ---
 
-### POST /api/QuizMatchmaker/deleteHobbyMatch
+### POST /api/QuizMatchmaker/deleteHobbyMatches
 
-**Description:** Deletes a user's hobby match so they can generate a new one.
+**Description:** Deletes all hobby matches for a user.
 
 **Requirements:**
-- A HobbyMatch exists for this user
+- At least one HobbyMatch exists for this user
 
 **Effects:**
-- Deletes the existing HobbyMatch
+- Deletes all HobbyMatches for the user
 
 **Request Body:**
 ```json
 {
   "user": "string"
+}
+```
+
+**Success Response Body:**
+```json
+{}
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
+
+---
+
+### POST /api/QuizMatchmaker/deleteHobbyMatchById
+
+**Description:** Deletes a specific hobby match for a user by match ID.
+
+**Requirements:**
+- The specified HobbyMatch exists for this user
+
+**Effects:**
+- Deletes only the specified HobbyMatch for the user
+
+**Request Body:**
+```json
+{
+  "user": "string",
+  "matchId": "string"
 }
 ```
 
@@ -833,47 +797,7 @@ This document provides the REST API specification for all concepts in the HobbyS
 **Success Response Body:**
 ```json
 [
-  {
-    "_id": "string",
-    "text": "string",
-    "order": "number"
-  }
-]
-```
-
-**Error Response Body:**
-```json
-{
-  "error": "string"
-}
-```
-
----
-
-### POST /api/QuizMatchmaker/_getUserResponses
-
-**Description:** Retrieves all responses submitted by a user.
-
-**Requirements:**
-- The user exists
-
-**Effects:**
-- Returns all UserResponses submitted by the user
-
-**Request Body:**
-```json
-{
-  "user": "string"
-}
-```
-
-**Success Response Body:**
-```json
-[
-  {
-    "question": "string",
-    "answerText": "string"
-  }
+  { "_id": "string", "text": "string", "order": "number" }
 ]
 ```
 
@@ -888,13 +812,13 @@ This document provides the REST API specification for all concepts in the HobbyS
 
 ### POST /api/QuizMatchmaker/_getMatchedHobby
 
-**Description:** Retrieves the matched hobby for a user.
+**Description:** Retrieves the most recent matched hobby for a user.
 
 **Requirements:**
-- The user exists and has a HobbyMatch
+- The user exists and has at least one HobbyMatch
 
 **Effects:**
-- Returns the matchedHobby for the user
+- Returns the most recent matchedHobby for the user
 
 **Request Body:**
 ```json
@@ -906,7 +830,7 @@ This document provides the REST API specification for all concepts in the HobbyS
 **Success Response Body:**
 ```json
 [
-  "string"
+  { "hobby": "string" }
 ]
 ```
 
@@ -919,68 +843,28 @@ This document provides the REST API specification for all concepts in the HobbyS
 
 ---
 
-## PasswordAuthentication Concept
+### POST /api/QuizMatchmaker/_getAllHobbyMatches
 
-**Purpose:** Associate usernames and passwords with user identities for authentication purposes, thereby limiting access to known users.
-
-### POST /api/PasswordAuthentication/register
-
-**Description:** Registers a new user with username and password.
+**Description:** Retrieves all hobby matches for a user, most recent first.
 
 **Requirements:**
-- No User with the given username already exists
+- The user exists and has at least one HobbyMatch
 
 **Effects:**
-- Creates a new User instance with the provided username and password
-- Returns the user ID
+- Returns all hobby matches for the user, most recent first
 
 **Request Body:**
-```json
-{
-  "username": "string",
-  "password": "string"
-}
-```
-
-**Success Response Body:**
 ```json
 {
   "user": "string"
 }
 ```
 
-**Error Response Body:**
-```json
-{
-  "error": "string"
-}
-```
-
----
-
-### POST /api/PasswordAuthentication/authenticate
-
-**Description:** Authenticates a user with username and password.
-
-**Requirements:**
-- A User with the given username exists AND the password matches the stored password
-
-**Effects:**
-- Returns the identifier of the authenticated User
-
-**Request Body:**
-```json
-{
-  "username": "string",
-  "password": "string"
-}
-```
-
 **Success Response Body:**
 ```json
-{
-  "user": "string"
-}
+[
+  { "id": "string", "hobby": "string", "matchedAt": "string" }
+]
 ```
 
 **Error Response Body:**

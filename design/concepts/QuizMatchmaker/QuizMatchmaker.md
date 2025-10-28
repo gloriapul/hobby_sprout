@@ -291,4 +291,10 @@ export default class QuizMatchmakerConcept {
     { user }: { user: User },
   ): Promise<Empty | { error: string }> {
     const result = await this.hobbyMatches.deleteMany({ user });
-    if
+    if (result.deletedCount === 0) {
+      return { error: `No hobby matches exist for user ${user}.` };
+    }
+    return {};
+  }
+}
+```
