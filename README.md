@@ -24,6 +24,7 @@
 
 ## Overall Design Changes
 - [Changes](design/design-changes.md)
+- [Changes Post Assignment 4b](design/assignment4b-design-changes.md)
 
 # Setup
 
