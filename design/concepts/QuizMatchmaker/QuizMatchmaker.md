@@ -12,40 +12,30 @@
 
 *   **concept**: QuizMatchmaker \[User]
 *   **purpose**: To match users with suitable hobbies based on their responses to a *predefined, fixed* quiz.
-*   **principle**: If a user provides answers to all predefined quiz questions, then the system will use an LLM to analyze these responses and suggest a specific hobby that aligns with the user's interests. The user can generate and view multiple hobby matches over time, each stored as a separate match.
+*   **principle**: If a user provides answers to all predefined quiz questions in a single submission, the system will use an LLM to analyze these responses and suggest a specific hobby that aligns with the user's interests. The user can generate and view multiple hobby matches over time, each stored as a separate match.
 *   **state**:
-  *   A set of `UserResponses` with
-    *   a `user` of type `User`
-    *   a `question` of type `Question` (referencing a predefined question ID)
-    *   an `answerText` of type `String`
   *   A set of `HobbyMatches` with
     *   a `user` of type `User`
     *   a `matchedHobby` of type `String`
     *   a `matchedAt` of type `DateTime`
     *   an `_id` of type `ID` (unique for each match)
 *   **actions**:
-  *   `submitResponse (user: User, question: Question, answerText: String)`
-    *   **requires**: The `question` ID must correspond to one of the predefined questions. The `user` has not yet submitted a response for this specific `question`.
-    *   **effects**: Records the `user`'s `answerText` for the given `question`.
-  *   `updateResponse (user: User, question: Question, newAnswerText: String)`
-    *   **requires**: The `question` ID must correspond to one of the predefined questions. The `user` has already submitted a response for this specific `question`.
-    *   **effects**: Updates the `user`'s `answerText` for the given `question`.
-  *   `generateHobbyMatch (user: User): (matchedHobby: String)`
-    *   **requires**: The `user` has submitted responses for *all* predefined `Questions`.
-    *   **effects**: Uses an LLM to analyze the `user`'s `UserResponses` to `Questions`, generates a `matchedHobby` string, stores it as a new match, and returns it. Users can generate multiple matches over time.
+  *   `generateHobbyMatch (user: User, answers: String[5]): (matchedHobby: String)`
+    *   **requires**: The `answers` array must have exactly 5 strings, corresponding to the predefined questions. The LLM must be initialized.
+    *   **effects**: Uses an LLM to analyze the answers, generates a `matchedHobby` string, stores it as a new match, and returns it. Users can generate multiple matches over time.
   *   `deleteHobbyMatches (user: User)`
     *   **requires**: At least one `HobbyMatch` exists for this `user`.
     *   **effects**: Deletes all `HobbyMatches` for the user.
   *   `deleteHobbyMatchById (user: User, matchId: ID)`
     *   **requires**: The specified `HobbyMatch` exists for this `user`.
     *   **effects**: Deletes only the specified `HobbyMatch` for the user.
+  *   `initializeLLM (apiKey: String)`
+    *   **requires**: A valid API key is provided.
+    *   **effects**: Initializes the LLM for use in generating hobby matches.
 *   **queries**:
   *   `_getQuestions (): (question: { _id: Question, text: String, order: Number })[]`
     *   **requires**: true
     *   **effects**: Returns an array of all *predefined* quiz questions, ordered by `order`.
-  *   `_getUserResponses (user: User): (response: { question: Question, answerText: String })[]`
-    *   **requires**: The `user` exists.
-    *   **effects**: Returns all `UserResponses` submitted by the `user`.
   *   `_getMatchedHobby (user: User): (hobby: String)[]`
     *   **requires**: The `user` exists and has at least one `HobbyMatch`.
     *   **effects**: Returns the most recent `matchedHobby` for the `user`.
@@ -114,18 +104,6 @@ export const QUIZ_QUESTIONS: HardcodedQuestion[] = [
 
 /**
  * State:
- * A set of UserResponses, linking a user, a question, and their text answer.
- * Each document represents one user's answer to one specific question.
- */
-interface UserResponseDoc {
-  _id: ID; // Unique ID for this specific user response entry (using freshID)
-  user: User; // The ID of the user who provided the answer
-  question: Question; // The ID of the question being answered (references a QUIZ_QUESTIONS._id)
-  answerText: string; // The user's free-form text answer
-}
-
-/**
- * State:
  * A set of HobbyMatches, storing the matched hobby for each user.
  * Each document represents the final hobby match for a user.
  */
@@ -141,12 +119,10 @@ interface HobbyMatchDoc {
  * @purpose To match users with suitable hobbies based on their responses to a predefined quiz, leveraging an LLM for intelligent matching.
  */
 export default class QuizMatchmakerConcept {
-  private userResponses: Collection<UserResponseDoc>;
   private hobbyMatches: Collection<HobbyMatchDoc>;
   private llm: GeminiLLM | null = null;
 
   constructor(private readonly db: Db, apiKey?: string) {
-    this.userResponses = this.db.collection(PREFIX + "userResponses");
     this.hobbyMatches = this.db.collection(PREFIX + "hobbyMatches");
 
     // initialize LLM if API key is provided
@@ -208,126 +184,33 @@ export default class QuizMatchmakerConcept {
   }
 
   /**
-   * Action: Allows a user to submit their response to a specific quiz question.
-   *
-   * @returns An empty object for success, or an error message.
-   *
-   * @requires The `question` ID must correspond to one of the predefined questions. The `user` has not yet submitted a response for this specific `question`.
-   * @effects Records the `user`'s `answerText` for the given `question`.
-   */
-  async submitResponse(
-    { user, question, answerText }: {
-      user: User;
-      question: Question;
-      answerText: string;
-    },
-  ): Promise<Empty | { error: string }> {
-    // Validate question ID against hardcoded list
-    if (!this.getQuestionById(question)) {
-      return {
-        error:
-          `Question with ID ${question} is not a valid predefined quiz question.`,
-      };
-    }
-
-    const existingResponse = await this.userResponses.findOne({
-      user,
-      question,
-    });
-    if (existingResponse) {
-      return {
-        error:
-          `User ${user} has already submitted a response for question ${question}. Use updateResponse to change it.`,
-      };
-    }
-
-    await this.userResponses.insertOne({
-      _id: `response_${user}_${question}` as ID,
-      user,
-      question,
-      answerText,
-    });
-    return {};
-  }
-
-  /**
-   * Action: Updates an existing response from a user to a specific quiz question.
-   *
-   * @returns An empty object for success, or an error message.
-   *
-   * @requires The `question` ID must correspond to one of the predefined questions. The `user` has already submitted a response for this specific `question`. No `HobbyMatch` exists for this `user`.
-   * @effects Updates the `user`'s `answerText` for the given `question`.
-   */
-  async updateResponse(
-    { user, question, newAnswerText }: {
-      user: User;
-      question: Question;
-      newAnswerText: string;
-    },
-  ): Promise<Empty | { error: string }> {
-    if (!this.getQuestionById(question)) {
-      return {
-        error:
-          `Question with ID ${question} is not a valid predefined quiz question.`,
-      };
-    }
-
-    const existingResponse = await this.userResponses.findOne({
-      user,
-      question,
-    });
-
-    if (!existingResponse) {
-      return {
-        error:
-          `User ${user} has not submitted a response for question ${question} yet. Use submitResponse to create it.`,
-      };
-    }
-
-    // @requires The `question` ID must correspond to one of the predefined questions. The `user` has already submitted a response for this specific `question`.
-    await this.userResponses.updateOne({ user, question }, {
-      $set: { answerText: newAnswerText },
-    });
-    return {};
-  }
-
-  /**
    * Action: Generates a hobby match for a user based on their quiz responses using an LLM.
    *
+   * @param user - The user taking the quiz
+   * @param answers - Array of 5 answer strings, in order of QUIZ_QUESTIONS
    * @returns An object containing the suggested matched hobby string, or an error message.
    *
-   * @requires The `user` has submitted responses for all questions. No `HobbyMatch` already exists for this `user`.
-   * @effects Uses an LLM to analyze the `user`'s `UserResponses` to `Questions`, generates a `matchedHobby` string, stores it, and returns it.
+   * @effects Uses an LLM to analyze the answers, generates a `matchedHobby` string, stores it, and returns it.
    */
   async generateHobbyMatch(
-    { user }: { user: User },
+    { user, answers }: { user: User; answers: string[] },
   ): Promise<{ matchedHobby: string } | { error: string }> {
-    const userResponses = await this.userResponses.find({ user }).toArray();
-    if (userResponses.length !== QUIZ_QUESTIONS.length) {
+    if (!Array.isArray(answers) || answers.length !== QUIZ_QUESTIONS.length) {
       return {
-        error:
-          `User ${user} has not answered all ${QUIZ_QUESTIONS.length} questions. Please submit responses for all questions.`,
+        error: `Must provide exactly ${QUIZ_QUESTIONS.length} answers.`,
       };
     }
 
-    // check if LLM is initialized
     if (!this.llm) {
       return {
         error: "LLM not initialized. API key might be missing or invalid.",
       };
     }
 
-    // prep prompt for LLM
     let prompt =
       "Based on the following quiz answers, suggest a single hobby that would best suit the user. Your answer should only be the name of the hobby, e.g., 'Gardening' or 'Photography', and nothing else. Do not include any introductory or concluding remarks, just the hobby name.\n\nQuestions and Answers:\n";
-    for (const q of QUIZ_QUESTIONS) {
-      const response = userResponses.find((r) => r.question === q._id);
-      if (response) {
-        prompt += `Q: ${q.text}\nA: ${response.answerText}\n`;
-      } else {
-        // this case should be prevented by the userResponses.length check, but as a safeguard:
-        return { error: `Missing response for question: ${q.text}.` };
-      }
+    for (let i = 0; i < QUIZ_QUESTIONS.length; i++) {
+      prompt += `Q: ${QUIZ_QUESTIONS[i].text}\nA: ${answers[i]}\n`;
     }
 
     try {
@@ -355,24 +238,6 @@ export default class QuizMatchmakerConcept {
         }`,
       };
     }
-  }
-
-  /**
-   * Query: Retrieves all responses submitted by a specific user.
-   *
-   * @returns An array of response objects, each containing the question ID and the answer text.
-   *
-   * @requires The `user` exists.
-   * @effects Returns all `UserResponses` submitted by the `user`.
-   */
-  async _getUserResponses(
-    { user }: { user: User },
-  ): Promise<{ question: Question; answerText: string }[]> {
-    return (await this.userResponses.find({ user }).project({
-      question: 1,
-      answerText: 1,
-      _id: 0,
-    }).toArray()) as { question: Question; answerText: string }[];
   }
 
   /**
@@ -422,30 +287,8 @@ export default class QuizMatchmakerConcept {
   /**
    * Action: Deletes all hobby matches for a user (to allow a full reset).
    */
-  async deleteHobbyMatches(
+  async _deleteHobbyMatches(
     { user }: { user: User },
   ): Promise<Empty | { error: string }> {
     const result = await this.hobbyMatches.deleteMany({ user });
-    if (result.deletedCount === 0) {
-      return { error: `No hobby matches exist for user ${user}.` };
-    }
-    return {};
-  }
-
-  /**
-   * Action: Deletes a specific hobby match for a user by match ID.
-   * @param user The user who owns the match.
-   * @param matchId The unique ID of the hobby match to delete.
-   * @returns Empty object if successful, or an error message if not found.
-   */
-  async deleteHobbyMatchById(
-    { user, matchId }: { user: User; matchId: ID },
-  ): Promise<Empty | { error: string }> {
-    const result = await this.hobbyMatches.deleteOne({ user, _id: matchId });
-    if (result.deletedCount === 0) {
-      return { error: `No hobby match with ID ${matchId} exists for user ${user}.` };
-    }
-    return {};
-  }
-}
-```
+    if

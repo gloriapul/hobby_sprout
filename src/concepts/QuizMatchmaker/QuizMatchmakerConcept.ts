@@ -57,12 +57,6 @@ export const QUIZ_QUESTIONS: HardcodedQuestion[] = [
 
 /**
  * State:
- * A set of UserResponses, linking a user, a question, and their text answer.
- * Each document represents one user's answer to one specific question.
- */
-
-/**
- * State:
  * A set of HobbyMatches, storing the matched hobby for each user.
  * Each document represents the final hobby match for a user.
  */
