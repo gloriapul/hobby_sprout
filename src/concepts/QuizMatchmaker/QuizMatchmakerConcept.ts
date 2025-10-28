@@ -365,7 +365,7 @@ export default class QuizMatchmakerConcept {
   /**
    * Action: Deletes all hobby matches for a user (to allow a full reset).
    */
-  async deleteHobbyMatches(
+  async _deleteHobbyMatches(
     { user }: { user: User },
   ): Promise<Empty | { error: string }> {
     const result = await this.hobbyMatches.deleteMany({ user });
@@ -375,19 +375,4 @@ export default class QuizMatchmakerConcept {
     return {};
   }
 
-  /**
-   * Action: Deletes a specific hobby match for a user by match ID.
-   * @param user The user who owns the match.
-   * @param matchId The unique ID of the hobby match to delete.
-   * @returns Empty object if successful, or an error message if not found.
-   */
-  async deleteHobbyMatchById(
-    { user, matchId }: { user: User; matchId: ID },
-  ): Promise<Empty | { error: string }> {
-    const result = await this.hobbyMatches.deleteOne({ user, _id: matchId });
-    if (result.deletedCount === 0) {
-      return { error: `No hobby match with ID ${matchId} exists for user ${user}.` };
-    }
-    return {};
-  }
 }
