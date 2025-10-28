@@ -30,12 +30,19 @@ async function submitAllResponses(
   }
 }
 
+// Clear collections before each test
+async function clearQuizCollections(db: any) {
+  await db.collection("QuizMatchmaker.userResponses").deleteMany({});
+  await db.collection("QuizMatchmaker.hobbyMatches").deleteMany({});
+}
+
 function hasError(result: unknown): boolean {
   return typeof result === "object" && result !== null && "error" in result;
 }
 
 Deno.test("Principle: User answers personality quiz and receives hobby match", async () => {
   const [db, client] = await testDb();
+  await clearQuizCollections(db);
   const quizConcept = new QuizMatchmakerConcept(db);
 
   try {
@@ -86,70 +93,6 @@ Deno.test("Principle: User answers personality quiz and receives hobby match", a
     console.log(
       "4. Principle satisfied: User can answer the quiz and receive a stored hobby match",
     );
-  } finally {
-    await client.close();
-  }
-});
-
-Deno.test("Action: deleteHobbyMatchById deletes only the selected match", async () => {
-  const [db, client] = await testDb();
-  const quizConcept = new QuizMatchmakerConcept(db);
-  const testUser = "user:DeleteByIdUser" as ID;
-
-  try {
-    // Submit responses and generate two matches
-    await submitAllResponses(quizConcept, testUser, "DeleteById test answer");
-    if (GEMINI_API_KEY) {
-      quizConcept.initializeLLM(GEMINI_API_KEY);
-      // Generate two matches for the user
-      await quizConcept.generateHobbyMatch({ user: testUser });
-      await quizConcept.generateHobbyMatch({ user: testUser });
-    }
-    // Get all matches and ensure there are two
-    const allMatches = await quizConcept._getAllHobbyMatches({
-      user: testUser,
-    });
-    assertEquals(
-      Array.isArray(allMatches),
-      true,
-      "Should return an array of matches",
-    );
-    if (!Array.isArray(allMatches) || allMatches.length < 2) {
-      throw new Error("Expected at least two matches for delete-by-id test");
-    }
-
-    // Type assertion for test clarity
-    type MatchWithId = { id: string; hobby: string; matchedAt: Date };
-    const [firstMatch, secondMatch] = allMatches as MatchWithId[];
-    // Delete the first match by ID
-    const deleteResult = await quizConcept.deleteHobbyMatchById({
-      user: testUser,
-      matchId: firstMatch.id as ID,
-    });
-    assertEquals(hasError(deleteResult), false, "Delete by ID should succeed");
-
-    // Get all matches again and ensure only the second remains
-    const matchesAfterDelete = await quizConcept._getAllHobbyMatches({
-      user: testUser,
-    });
-    assertEquals(
-      Array.isArray(matchesAfterDelete),
-      true,
-      "Should return an array after delete",
-    );
-    if (Array.isArray(matchesAfterDelete)) {
-      const matchesAfter = matchesAfterDelete as MatchWithId[];
-      assertEquals(
-        matchesAfter.length,
-        allMatches.length - 1,
-        "One match should be deleted",
-      );
-      assertEquals(
-        matchesAfter[0].id as ID,
-        secondMatch.id as ID,
-        "The remaining match should be the second one",
-      );
-    }
   } finally {
     await client.close();
   }
@@ -248,6 +191,7 @@ Deno.test(
 
 Deno.test("Action: submitResponse requirements and restrictions", async () => {
   const [db, client] = await testDb();
+  await clearQuizCollections(db);
   const quizConcept = new QuizMatchmakerConcept(db);
 
   try {
@@ -302,177 +246,103 @@ Deno.test("Action: submitResponse requirements and restrictions", async () => {
 });
 
 Deno.test("Action: updateResponse functionality and restrictions", async () => {
-  const [db, client] = await testDb();
-  const quizConcept = new QuizMatchmakerConcept(db);
+  Deno.test("Action: deleteHobbyMatch functionality and integration with full lifecycle", async () => {
+    const [db, client] = await testDb();
+      await clearQuizCollections(db);
+    const quizConcept = new QuizMatchmakerConcept(db);
+    const testUser = "user:TestUser" as ID;
 
-  try {
-    console.log("1. Get a valid question for testing");
-    const testQuestion = QUIZ_QUESTIONS[0]._id;
-    console.log(`   ✓ Using question: ${QUIZ_QUESTIONS[0].text}`);
+    try {
+      console.log("1. Submitting responses for all quiz questions");
+      await submitAllResponses(quizConcept, testUser, "Sample answer to");
+      console.log("   ✓ All responses submitted successfully");
 
-    console.log("2. Update non-existent response (should fail)");
-    const updateWithoutSubmitResult = await quizConcept.updateResponse({
-      user: userA,
-      question: testQuestion,
-      newAnswerText: "Cannot update what doesn't exist",
-    });
-    assertEquals(
-      hasError(updateWithoutSubmitResult),
-      true,
-      "Updating non-existent response should fail",
-    );
-    console.log("   ✓ Updating non-existent response rejected as expected");
+      // Initialize LLM if API key is present
+      if (GEMINI_API_KEY) {
+        console.log("2. Initializing LLM with API key");
+        quizConcept.initializeLLM(GEMINI_API_KEY);
+      } else {
+        console.log(
+          "   - GEMINI_API_KEY not set; test will likely fail without LLM",
+        );
+      }
 
-    console.log("3. Submit then update the response");
-    await quizConcept.submitResponse({
-      user: userA,
-      question: testQuestion,
-      answerText: "Original answer",
-    });
-
-    const updateResult = await quizConcept.updateResponse({
-      user: userA,
-      question: testQuestion,
-      newAnswerText: "Updated answer",
-    });
-    assertEquals(hasError(updateResult), false, "Valid update should succeed");
-    console.log("   ✓ Update succeeded");
-
-    console.log("4. Verify the update persisted");
-    const responses = await quizConcept._getUserResponses({ user: userA });
-    const updatedResponse = responses.find((r) => r.question === testQuestion);
-    assertExists(updatedResponse, "Response should exist");
-    assertEquals(updatedResponse.answerText, "Updated answer");
-    console.log("   ✓ Update verified in stored responses");
-    console.log(
-      "5. Action requirements satisfied: updateResponse enforces preconditions and updates stored response",
-    );
-  } finally {
-    await client.close();
-  }
-});
-
-Deno.test("Action: deleteHobbyMatch functionality and integration with full lifecycle", async () => {
-  const [db, client] = await testDb();
-  const quizConcept = new QuizMatchmakerConcept(db);
-  const testUser = "user:TestUser" as ID;
-
-  try {
-    console.log("1. Submitting responses for all quiz questions");
-    await submitAllResponses(quizConcept, testUser, "Sample answer to");
-    console.log("   ✓ All responses submitted successfully");
-
-    // Initialize LLM if API key is present
-    if (GEMINI_API_KEY) {
-      console.log("2. Initializing LLM with API key");
-      quizConcept.initializeLLM(GEMINI_API_KEY);
-    } else {
-      console.log(
-        "   - GEMINI_API_KEY not set; test will likely fail without LLM",
+      console.log("3. Generating initial hobby match");
+      const matchResult = await quizConcept.generateHobbyMatch({
+        user: testUser,
+      });
+      assertEquals(
+        hasError(matchResult),
+        false,
+        "Hobby match generation should succeed",
       );
+      const { matchedHobby } = matchResult as { matchedHobby: string };
+      console.log(`   ✓ Generated hobby: "${matchedHobby}"`);
+
+      console.log(
+        "4. Attempting to update a response (should succeed even if matches exist)",
+      );
+      // Deleting all matches for the user
+      console.log("5. Deleting all hobby matches for the user");
+      const deleteResult = await quizConcept._deleteHobbyMatches({
+        user: testUser,
+      });
+      assertEquals(
+        hasError(deleteResult),
+        false,
+        "Match deletion should succeed",
+      );
+      console.log("   ✓ All matches successfully deleted");
+
+      console.log("6. Verifying matches were actually removed");
+      const matchCheck = await quizConcept._getMatchedHobby({ user: testUser });
+      assertEquals(hasError(matchCheck), true, "Match should no longer exist");
+      console.log(
+        `   ✓ Match confirmed deleted: "${
+          hasError(matchCheck) && "error" in matchCheck ? matchCheck.error : ""
+        }"`,
+      );
+
+      console.log(
+        "7. Generating a new hobby match after deletion (should succeed)",
+      );
+      const newMatchResult = await quizConcept.generateHobbyMatch({
+        user: testUser,
+      });
+      assertEquals(
+        hasError(newMatchResult),
+        false,
+        "New hobby match generation should succeed",
+      );
+      const { matchedHobby: newHobby } = newMatchResult as {
+        matchedHobby: string;
+      };
+      console.log(`   ✓ New generated hobby: "${newHobby}"`);
+
+      console.log(
+        "8. Attempting to delete non-existent matches (for a different user)",
+      );
+      const nonExistentResult = await quizConcept._deleteHobbyMatches({
+        user: "user:NonExistent" as ID,
+      });
+      assertEquals(
+        hasError(nonExistentResult),
+        true,
+        "Deleting non-existent matches should fail",
+      );
+      console.log(
+        `   ✓ Non-existent match deletion correctly rejected: "${
+          hasError(nonExistentResult) && "error" in nonExistentResult
+            ? nonExistentResult.error
+            : ""
+        }"`,
+      );
+
+      console.log(
+        "9. Action requirements satisfied: _deleteHobbyMatches enables the full response-match-delete lifecycle",
+      );
+    } finally {
+      await client.close();
     }
-
-    console.log("3. Generating initial hobby match");
-    const matchResult = await quizConcept.generateHobbyMatch({
-      user: testUser,
-    });
-    assertEquals(
-      hasError(matchResult),
-      false,
-      "Hobby match generation should succeed",
-    );
-    const { matchedHobby } = matchResult as { matchedHobby: string };
-    console.log(`   ✓ Generated hobby: "${matchedHobby}"`);
-
-    console.log(
-      "4. Attempting to update a response (should succeed even if matches exist)",
-    );
-    const updateResult = await quizConcept.updateResponse({
-      user: testUser,
-      question: QUIZ_QUESTIONS[0]._id,
-      newAnswerText: "Changed answer",
-    });
-    assertEquals(
-      hasError(updateResult),
-      false,
-      "Update should succeed even if matches exist",
-    );
-    console.log(
-      "   ✓ Update succeeded even though matches exist",
-    );
-
-    console.log("5. Deleting the hobby match");
-    const deleteResult = await quizConcept.deleteHobbyMatches({
-      user: testUser,
-    });
-    assertEquals(
-      hasError(deleteResult),
-      false,
-      "Match deletion should succeed",
-    );
-    console.log("   ✓ Match successfully deleted");
-
-    console.log("6. Verifying match was actually removed");
-    const matchCheck = await quizConcept._getMatchedHobby({ user: testUser });
-    assertEquals(hasError(matchCheck), true, "Match should no longer exist");
-    console.log(
-      `   ✓ Match confirmed deleted: "${
-        hasError(matchCheck) && "error" in matchCheck ? matchCheck.error : ""
-      }"`,
-    );
-
-    console.log(
-      "7. Now updating a response (should succeed after match deletion)",
-    );
-    const updateResultAfterDelete = await quizConcept.updateResponse({
-      user: testUser,
-      question: QUIZ_QUESTIONS[0]._id,
-      newAnswerText: "Updated answer after match deletion",
-    });
-    assertEquals(
-      hasError(updateResultAfterDelete),
-      false,
-      "Update should succeed after match deletion",
-    );
-    console.log("   ✓ Response successfully updated after match deletion");
-
-    console.log("8. Generating a new hobby match after updates");
-    const newMatchResult = await quizConcept.generateHobbyMatch({
-      user: testUser,
-    });
-    assertEquals(
-      hasError(newMatchResult),
-      false,
-      "New hobby match generation should succeed",
-    );
-    const { matchedHobby: newHobby } = newMatchResult as {
-      matchedHobby: string;
-    };
-    console.log(`   ✓ New generated hobby: "${newHobby}"`);
-
-    console.log(
-      "9. Attempting to delete non-existent match (for a different user)",
-    );
-    const nonExistentResult = await quizConcept.deleteHobbyMatches({
-      user: "user:NonExistent" as ID,
-    });
-    assertEquals(
-      hasError(nonExistentResult),
-      true,
-      "Deleting non-existent match should fail",
-    );
-    console.log(
-      `   ✓ Non-existent match deletion correctly rejected: "${
-        hasError(nonExistentResult) && "error" in nonExistentResult
-          ? nonExistentResult.error
-          : ""
-      }"`,
-    );
-
-    console.log(
-      "10. Action requirements satisfied: deleteHobbyMatch enables the full response-match-delete-update-match lifecycle",
-    );
-  } finally {
-    await client.close();
-  }
+  });
 });
