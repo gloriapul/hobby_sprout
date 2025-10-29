@@ -25,9 +25,12 @@
   *   `createGoal(user: User, description: String, hobby: String): (goal: Goal)`
     *   **requires**: No active `Goal` for this `user` and `hobby` already exists. `description` and `hobby` are not empty strings.
     *   **effects**: Creates a new `Goal` `g`; sets its `user` to `user`, `description` to `description`, and `hobby` to `hobby`; sets `isActive` to `true`; returns `g` as `goal`.
-    *   `generateSteps(goal: Goal): (steps: Step[])`
-        *   **requires**: `goal` exists and is active; no `Steps` are currently associated with this `goal`.
-        *   **effects**: Uses an internal LLM to generate `Step` descriptions based on the `goal`'s description; for each generated description, creates a new `Step` associated with `goal`, sets `description`, `start` (current date), and `isComplete` to `false`; returns the IDs of the created `Steps` as an array `steps`.
+  *   `generateSteps(goal: Goal): (steps: Step[])`
+    *   **requires**: `goal` exists and is active; no `Steps` are currently associated with this `goal`.
+    *   **effects**: Uses an internal LLM to generate `Step` descriptions based on the `goal`'s description; for each generated description, creates a new `Step` associated with `goal`, sets `description`, `start` (current date), and `isComplete` to `false`; returns the IDs of the created `Steps` as an array `steps`.
+  *   `regenerateSteps(goal: Goal): (steps: Step[])`
+    *   **requires**: `goal` exists and is active.
+    *   **effects**: Deletes all existing `Steps` for the `goal` (regardless of completion status), then uses the internal LLM to generate new `Step` descriptions as in `generateSteps`. For each generated description, creates a new `Step` associated with `goal`, sets `description`, `start` (current date), and `isComplete` to `false`; returns the IDs of the new `Steps` as an array `steps`.
     *   `addStep(goal: Goal, description: String): (step: Step)`
         *   **requires**: `goal` exists and is active; `description` is not an empty string.
         *   **effects**: Creates a new `Step` `s`; sets `goalId` to `goal`, `description` to `description`, `start` to current date, and `isComplete` to `false`; returns `s` as `step`.
@@ -152,18 +155,25 @@ export default class MilestoneTrackerConcept {
     // 1. Length validation (10-300 characters)
     for (const step of steps) {
       if (step.length < 10) {
+        console.error(`[validateStepQuality] FAIL: too brief: ${step}`);
         return `Step too brief: "${step}". Provide more detail to clarify the action.`;
       }
       if (step.length > 300) {
+        console.error(`[validateStepQuality] FAIL: too long: ${step}`);
         return `Step too detailed: "${step}". Keep each step brief and focused on one main action.`;
       }
     }
 
-    // 2. Vague language check
-    const vagueWords = ["etc", "maybe", "possibly", "and more", "as necessary"];
+    // 2. Vague language check (whole words only)
+    const vagueWords = ["etc", "maybe", "possibly", "as necessary"];
     for (const step of steps) {
       for (const word of vagueWords) {
-        if (step.toLowerCase().includes(word)) {
+        // Use regex to match whole words only
+        const re = new RegExp(
+          `\\b${word.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}\\b`,
+          "i",
+        );
+        if (re.test(step)) {
           return `Vague step detected: "${step}". Steps must be specific and actionable.`;
         }
       }
@@ -173,11 +183,15 @@ export default class MilestoneTrackerConcept {
     for (const step of steps) {
       const commaCount = (step.match(/,/g) || []).length;
       if (commaCount > 6) {
+        console.error(
+          `[validateStepQuality] FAIL: too many commas (${commaCount}): ${step}`,
+        );
         return `Step too verbose: "${step}". Break into simpler steps.`;
       }
     }
 
-    return undefined; // passed
+    // Passed all checks
+    return undefined;
   }
 
   /**
@@ -651,6 +665,96 @@ export default class MilestoneTrackerConcept {
       start: s.start,
       completion: s.completion!, // assert non-null after filtering
     }));
+  }
+
+  /**
+   * regenerateSteps (goal: Goal): (steps: Step[])
+   *
+   * @requires `goal` exists and is active
+   *
+   * @effects deletes all existing steps for the goal, then generates new steps using the LLM.
+   * Returns the IDs of the new steps as an array `steps`.
+   */
+  async regenerateSteps({
+    goal,
+  }: {
+    goal: Goal;
+  }): Promise<{ steps: Step[] } | { error: string }> {
+    const targetGoal = await this.goals.findOne({ _id: goal, isActive: true });
+    if (!targetGoal) {
+      return { error: `Goal ${goal} not found or is not active.` };
+    }
+    await this.steps.deleteMany({ goalId: goal });
+    // Now generate new steps using the same logic as generateSteps
+    if (!this.llm) {
+      return {
+        error: "LLM not initialized. API key might be missing or invalid.",
+      };
+    }
+    try {
+      const llmPrompt = `
+        You are a helpful AI assistant that creates a recommended plan of clear steps for people looking to work on a hobby.
+
+        The user's hobby is: "${targetGoal.hobby}"
+        Create a structured step-by-step plan for this goal: "${targetGoal.description}"
+
+        Response Requirements:
+        1. Return ONLY a single-line JSON array of strings
+        2. Each string should be a specific, complete, measurable, and actionable step
+        3. Steps must be relevant to the hobby and the goal, and feasible for an average person (not overly ambitious or vague)
+        4. Only contain necessary steps to achieve the goal, avoid filler steps and be mindful of number of steps generated
+        5. Steps must be in logical order
+        6. Do NOT use line breaks or extra whitespace
+        7. Properly escape any quotes in the text
+        8. No step numbers or prefixes
+        9. No comments or explanations
+
+        Example response format:
+        ["Research camera settings and features","Practice taking photos in different lighting","Review and organize test shots"]
+
+        Return ONLY the JSON array, nothing else.`;
+
+      const responseText = await this.llm.executeLLM(llmPrompt);
+      let stepDescriptions: string[];
+      try {
+        stepDescriptions = JSON.parse(responseText);
+      } catch (_parseError) {
+        return { error: "Failed to parse LLM response as JSON array." };
+      }
+      if (
+        !Array.isArray(stepDescriptions) ||
+        stepDescriptions.some((d) => typeof d !== "string")
+      ) {
+        return {
+          error:
+            "LLM returned invalid step format. Expected a JSON array of strings.",
+        };
+      }
+      const validationError = this.validateStepQuality(stepDescriptions);
+      if (validationError) {
+        return { error: validationError };
+      }
+      const newStepDocs: StepDoc[] = stepDescriptions.map((desc) => ({
+        _id: freshID(),
+        goalId: goal,
+        description: desc.trim(),
+        start: new Date(),
+        isComplete: false,
+      }));
+      if (newStepDocs.length > 0) {
+        await this.steps.insertMany(newStepDocs);
+      }
+      return { steps: newStepDocs.map((s) => s._id) };
+    } catch (e: unknown) {
+      console.error("Error regenerating steps with LLM:", e);
+      let llmErrorMessage = "LLM regeneration failed.";
+      if (typeof e === "object" && e !== null && "message" in e) {
+        llmErrorMessage = `Failed to regenerate steps: ${e.message}`;
+      } else if (typeof e === "string") {
+        llmErrorMessage = `Failed to regenerate steps: ${e}`;
+      }
+      return { error: llmErrorMessage };
+    }
   }
 }
 ```

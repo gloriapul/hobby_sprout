@@ -19,3 +19,9 @@ The API specification was updated to match the new batch model for QuizMatchmake
 **4. Test Suite Improvements**
 
 Test files were rewritten to match the new models, especially for QuizMatchmaker. Principle and action/variant tests are now clearly labeled, and all tests print clear, helpful console output. Redundant helpers and legacy logic were removed, and all tests now follow the rubric for operational principle and interesting scenarios. The tests reflect the updated situation of the concept code.
+
+**5. MilestoneTracker: Regenerate Steps and Step Validation Improvements**
+
+The MilestoneTracker concept was enhanced with a `regenerateSteps` action, allowing users to delete all existing steps for a goal and generate a new set of steps using the LLM. So, it can be considered to work as an edit for the steps of the goal. This gets ahead of any potential errors if an initial generate does not work or if the user simply wants to have new steps regenerated. The concept spec, implementation, and tests were updated to reflect this new action and its requirements.
+
+Additionally, the step validation logic was improved to avoid false positives when checking for vague words (e.g., "etc" inside "stretching"), by ensuring only whole words are matched. This makes the validation more robust and prevents valid steps from being incorrectly rejected.

@@ -543,4 +543,72 @@ Deno.test("Action: removeStep removes an incomplete step and validates constrain
     await client.close();
   }
 });
+
+Deno.test("Action: regenerateSteps deletes and regenerates steps if opted for", async () => {
+  const [db, client] = await testDb();
+  const milestoneTracker = new MilestoneTrackerConcept(db, GEMINI_API_KEY);
+  try {
+    // Create a goal
+    const createResult = await milestoneTracker.createGoal({
+      user: userA,
+      description: "Learn to bake sourdough bread",
+      hobby: "Baking",
+    });
+    assertEquals(
+      "error" in createResult,
+      false,
+      "Goal creation should succeed",
+    );
+    const goalId = (createResult as { goal: ID }).goal;
+
+    // Generate steps
+    const genResult = await milestoneTracker.generateSteps({ goal: goalId });
+    if ("error" in genResult) {
+      console.error("generateSteps error:", genResult.error);
+    }
+    assertEquals("error" in genResult, false, "Step generation should succeed");
+    const firstStepIds = (genResult as { steps: ID[] }).steps;
+    assertExists(firstStepIds[0], "Should have at least one step");
+
+    const regenResult = await milestoneTracker.regenerateSteps({
+      goal: goalId,
+    });
+    assertEquals(
+      "error" in regenResult,
+      false,
+      "Regeneration should succeed if no steps are completed",
+    );
+    const newStepIds = (regenResult as { steps: ID[] }).steps;
+    assertExists(newStepIds[0], "Should have at least one regenerated step");
+    // The new steps should be different from the old ones (IDs should not match)
+    assertEquals(
+      firstStepIds.some((id) => newStepIds.includes(id)),
+      false,
+      "Regenerated steps should have new IDs",
+    );
+
+    // Complete one step
+    await milestoneTracker.completeStep({ step: newStepIds[0] });
+    // Try to regenerate again (should succeed even if a step was completed)
+    const regenAgain = await milestoneTracker.regenerateSteps({ goal: goalId });
+    assertEquals(
+      "error" in regenAgain,
+      false,
+      "Regeneration should succeed even if a step was completed",
+    );
+    const finalStepIds = (regenAgain as { steps: ID[] }).steps;
+    assertExists(
+      finalStepIds[0],
+      "Should have at least one regenerated step after completion",
+    );
+    // The new steps should be different from the previous ones
+    assertEquals(
+      newStepIds.some((id) => finalStepIds.includes(id)),
+      false,
+      "Regenerated steps after completion should have new IDs",
+    );
+  } finally {
+    await client.close();
+  }
+});
 ```
