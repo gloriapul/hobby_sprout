@@ -47,6 +47,44 @@ This document provides the REST API specification for all concepts in the HobbyS
 
 ---
 
+
+### POST /api/MilestoneTracker/regenerateSteps
+
+**Description:** Deletes all existing steps for a goal and uses the LLM to generate a new set of steps.
+
+**Requirements:**
+- goal exists and is active
+
+**Effects:**
+- Deletes all Steps currently associated with the goal
+- Uses an internal LLM to generate new Step descriptions based on the goal's description
+- Creates new Steps associated with the goal
+- Sets start date to current date and isComplete to false
+- Returns the IDs of the new Steps
+
+**Request Body:**
+```json
+{
+  "goal": "string"
+}
+```
+
+**Success Response Body:**
+```json
+{
+  "steps": ["string"]
+}
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
+
+---
+
 ### POST /api/MilestoneTracker/generateSteps
 
 **Description:** Uses an LLM to generate recommended steps for achieving a goal.
