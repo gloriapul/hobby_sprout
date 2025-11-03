@@ -26,16 +26,7 @@
   *   `deleteHobbyMatches (user: User)`
     *   **requires**: At least one `HobbyMatch` exists for this `user`.
     *   **effects**: Deletes all `HobbyMatches` for the user.
-  *   `deleteHobbyMatchById (user: User, matchId: ID)`
-    *   **requires**: The specified `HobbyMatch` exists for this `user`.
-    *   **effects**: Deletes only the specified `HobbyMatch` for the user.
-  *   `initializeLLM (apiKey: String)`
-    *   **requires**: A valid API key is provided.
-    *   **effects**: Initializes the LLM for use in generating hobby matches.
 *   **queries**:
-  *   `_getQuestions (): (question: { _id: Question, text: String, order: Number })[]`
-    *   **requires**: true
-    *   **effects**: Returns an array of all *predefined* quiz questions, ordered by `order`.
   *   `_getMatchedHobby (user: User): (hobby: String)[]`
     *   **requires**: The `user` exists and has at least one `HobbyMatch`.
     *   **effects**: Returns the most recent `matchedHobby` for the `user`.
@@ -176,14 +167,6 @@ export default class QuizMatchmakerConcept {
   }
 
   /**
-   * Helper: Validate if a given question ID exists in our hardcoded list.
-   * @returns The HardcodedQuestion object if found, otherwise undefined.
-   */
-  public getQuestionById(questionId: Question): HardcodedQuestion | undefined {
-    return QUIZ_QUESTIONS.find((q) => q._id === questionId);
-  }
-
-  /**
    * Action: Generates a hobby match for a user based on their quiz responses using an LLM.
    *
    * @param user - The user taking the quiz
@@ -254,12 +237,12 @@ export default class QuizMatchmakerConcept {
    */
   async _getAllHobbyMatches(
     { user }: { user: User },
-  ): Promise<{ hobby: string; matchedAt: Date }[] | { error: string }> {
+  ): Promise<{ hobby: string; matchedAt: Date }[]> {
     const matches = await this.hobbyMatches.find({ user }).sort({
       matchedAt: -1,
     }).toArray();
     if (!matches.length) {
-      return { error: `No hobby matches found for user ${user}.` };
+      return [];
     }
     return matches.map((m) => ({
       id: m._id,
@@ -270,15 +253,15 @@ export default class QuizMatchmakerConcept {
 
   /**
    * Query: Retrieves the most recent hobby match for a specific user.
-   * @returns The latest matched hobby, or error if none found.
+   * @returns The latest matched hobby, or empty array if none found.
    */
   async _getMatchedHobby(
     { user }: { user: User },
-  ): Promise<{ hobby: string }[] | { error: string }> {
+  ): Promise<{ hobby: string }[]> {
     const match = await this.hobbyMatches.find({ user }).sort({ matchedAt: -1 })
       .limit(1).toArray();
     if (!match.length) {
-      return { error: `No hobby match found for user ${user}.` };
+      return [];
     }
 
     return [{ hobby: match[0].matchedHobby }];

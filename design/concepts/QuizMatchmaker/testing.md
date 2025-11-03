@@ -206,8 +206,8 @@ Deno.test("Action: should fail if LLM is not initialized", async () => {
   }
 });
 
-Deno.test("Action: should return error object for user with no matches", async () => {
-  console.log("\n[Action] Testing error for user with no matches...");
+Deno.test("Action: should return empty array for user with no matches", async () => {
+  console.log("\n[Action] Testing empty array for user with no matches...");
   const [db, client] = await testDb();
   const quizConcept = new QuizMatchmakerConcept(db);
   try {
@@ -215,14 +215,12 @@ Deno.test("Action: should return error object for user with no matches", async (
       user: "user:NoMatch" as ID,
     });
     assertEquals(
-      typeof result === "object" && result !== null && "error" in result,
+      Array.isArray(result) && result.length === 0,
       true,
-      "Should return error object for no matches",
+      "Should return empty array for no matches",
     );
-    if (typeof result === "object" && result !== null && "error" in result) {
-      console.log(`   ✓ Error received: ${result.error}`);
-    }
-    console.log("[Action] PASS: Error for user with no matches");
+    console.log(`   ✓ Empty array returned for user with no matches`);
+    console.log("[Action] PASS: Empty array for user with no matches");
   } finally {
     await client.close();
   }
