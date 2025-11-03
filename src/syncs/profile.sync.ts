@@ -10,16 +10,16 @@ import { actions, Sync } from "@engine";
 //-- Profile Management --//
 
 export const CreateProfileRequest: Sync = (
-  { request, session, displayname, profile, user, msg },
+  { request, session, user, msg },
 ) => ({
   when: actions([
     Requesting.request,
-    { path: "/UserProfile/createProfile", session, displayname, profile },
+    { path: "/UserProfile/createProfile", session },
     { request },
   ]),
   where: async (frames) =>
     await frames.query(Sessioning._getUser, { session }, { user }),
-  then: actions([UserProfile.createProfile, { user, displayname, profile }, {
+  then: actions([UserProfile.createProfile, { user }, {
     msg,
   }]),
 });

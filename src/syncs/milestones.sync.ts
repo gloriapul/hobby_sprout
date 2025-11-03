@@ -10,18 +10,18 @@ import { actions, Sync } from "@engine";
 //-- Goal Management --//
 
 export const CreateGoalRequest: Sync = (
-  { request, session, hobby, title, deadline, user, goal },
+  { request, session, hobby, description, user, goal },
 ) => ({
   when: actions([
     Requesting.request,
-    { path: "/MilestoneTracker/createGoal", session, hobby, title, deadline },
+    { path: "/MilestoneTracker/createGoal", session, hobby, description },
     { request },
   ]),
   where: async (frames) =>
     await frames.query(Sessioning._getUser, { session }, { user }),
   then: actions([
     MilestoneTracker.createGoal,
-    { user, hobby, title, deadline },
+    { user, hobby, description },
     { goal },
   ]),
 });
@@ -106,7 +106,7 @@ export const RegenerateStepsResponse: Sync = ({ request, steps }) => ({
 });
 
 export const AddStepRequest: Sync = (
-  { request, session, goalId, description, deadline, user, step },
+  { request, session, goalId, description, user, step },
 ) => ({
   when: actions([
     Requesting.request,
@@ -115,17 +115,14 @@ export const AddStepRequest: Sync = (
       session,
       goalId,
       description,
-      deadline,
     },
     { request },
   ]),
   where: async (frames) =>
     await frames.query(Sessioning._getUser, { session }, { user }),
   then: actions([MilestoneTracker.addStep, {
-    user,
-    goalId,
+    goal: goalId,
     description,
-    deadline,
   }, { step }]),
 });
 
