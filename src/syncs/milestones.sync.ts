@@ -233,39 +233,3 @@ export const GetStepsRequest: Sync = (
   },
   then: actions([Requesting.respond, { request, steps }]),
 });
-
-export const GetIncompleteStepsRequest: Sync = (
-  { request, session, goalId, user, step, steps },
-) => ({
-  when: actions([
-    Requesting.request,
-    { path: "/MilestoneTracker/_getIncompleteSteps", session, goalId },
-    { request },
-  ]),
-  where: async (frames) => {
-    frames = await frames.query(Sessioning._getUser, { session }, { user });
-    frames = await frames.query(MilestoneTracker._getIncompleteSteps, {
-      goal: goalId,
-    }, { step });
-    return frames.collectAs([step], steps);
-  },
-  then: actions([Requesting.respond, { request, steps }]),
-});
-
-export const GetCompleteStepsRequest: Sync = (
-  { request, session, goalId, user, step, steps },
-) => ({
-  when: actions([
-    Requesting.request,
-    { path: "/MilestoneTracker/_getCompleteSteps", session, goalId },
-    { request },
-  ]),
-  where: async (frames) => {
-    frames = await frames.query(Sessioning._getUser, { session }, { user });
-    frames = await frames.query(MilestoneTracker._getCompleteSteps, {
-      goal: goalId,
-    }, { step });
-    return frames.collectAs([step], steps);
-  },
-  then: actions([Requesting.respond, { request, steps }]),
-});

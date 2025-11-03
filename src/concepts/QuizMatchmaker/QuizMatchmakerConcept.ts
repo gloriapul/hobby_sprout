@@ -214,22 +214,6 @@ export default class QuizMatchmakerConcept {
   }
 
   /**
-   * Query: Retrieves the most recent hobby match for a specific user.
-   * @returns The latest matched hobby, or empty array if none found.
-   */
-  async _getMatchedHobby(
-    { user }: { user: User },
-  ): Promise<{ hobby: string }[]> {
-    const match = await this.hobbyMatches.find({ user }).sort({ matchedAt: -1 })
-      .limit(1).toArray();
-    if (!match.length) {
-      return [];
-    }
-
-    return [{ hobby: match[0].matchedHobby }];
-  }
-
-  /**
    * Action: Deletes all hobby matches for a user (to allow a full reset).
    */
   async deleteHobbyMatches(

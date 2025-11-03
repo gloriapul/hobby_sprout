@@ -555,51 +555,6 @@ export default class MilestoneTrackerConcept {
   }
 
   /**
-   * _getIncompleteSteps (goal: Goal): (step: {id: Step, description: String, start: Date})[]
-   *
-   * @requires `goal` exists.
-   *
-   * @effects Returns an array of all incomplete `Steps` for the given `goal`, including their `id`, `description`, and `start` date.
-   */
-  async _getIncompleteSteps({
-    goal,
-  }: {
-    goal: Goal;
-  }): Promise<{ id: Step; description: string; start: Date }[]> {
-    const stepsDocs = await this.steps.find({ goalId: goal, isComplete: false })
-      .toArray();
-    return stepsDocs.map((s) => ({
-      id: s._id,
-      description: s.description,
-      start: s.start,
-    }));
-  }
-
-  /**
-   * _getCompleteSteps (goal: Goal): (step: {id: Step, description: String, start: Date, completion: Date})[]
-   *
-   * @requires `goal` exists.
-   *
-   * @effects Returns an array of all complete `Steps` for the given `goal`, including their `id`, `description`, `start` date, and `completion` date.
-   */
-  async _getCompleteSteps({
-    goal,
-  }: {
-    goal: Goal;
-  }): Promise<
-    { id: Step; description: string; start: Date; completion: Date }[]
-  > {
-    const stepsDocs = await this.steps.find({ goalId: goal, isComplete: true })
-      .toArray();
-    return stepsDocs.filter((s) => s.completion !== undefined).map((s) => ({ // filter for completed steps with a completion date
-      id: s._id,
-      description: s.description,
-      start: s.start,
-      completion: s.completion!, // assert non-null after filtering
-    }));
-  }
-
-  /**
    * regenerateSteps (goal: Goal): (steps: Step[])
    *
    * @requires `goal` exists and is active

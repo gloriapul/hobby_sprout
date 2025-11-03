@@ -46,20 +46,14 @@
 
 *   **queries**:
   *   `_getGoal(user: User, hobby?: String): (goal: {id: Goal, description: String, hobby: String, isActive: Boolean})[]`
-    *   **requires**: `user` exists.
-    *   **effects**: Returns an array containing the active `Goal`(s) for the `user` (optionally filtered by `hobby`), including its `id`, `description`, `hobby`, and `isActive` status.
+    *   **requires**: none
+    *   **effects**: Returns an array containing the active `Goal`(s) for the `user` (optionally filtered by `hobby`), including its `id`, `description`, `hobby`, and `isActive` status. Returns empty array if no active goals exist.
   *   `_getAllGoals(user: User, hobby?: String): (goal: {id: Goal, description: String, hobby: String, isActive: Boolean})[]`
-    *   **requires**: `user` exists.
-    *   **effects**: Returns an array containing all goals (active and inactive) for the `user` (optionally filtered by `hobby`), including its `id`, `description`, `hobby`, and `isActive` status.
+    *   **requires**: none
+    *   **effects**: Returns an array containing all goals (active and inactive) for the `user` (optionally filtered by `hobby`), including its `id`, `description`, `hobby`, and `isActive` status. Returns empty array if no goals exist.
   *   `_getSteps(goal: Goal): (step: {id: Step, description: String, start: Date, completion: Date?, isComplete: Boolean})[]`
-      *   **requires**: `goal` exists.
-      *   **effects**: Returns an array of all `Steps` for the given `goal`, including their details.
-  *   `_getIncompleteSteps(goal: Goal): (step: {id: Step, description: String, start: Date})[]`
-      *   **requires**: `goal` exists.
-      *   **effects**: Returns an array of all incomplete `Steps` for the given `goal`, including their `id`, `description`, and `start` date.
-  *   `_getCompleteSteps(goal: Goal): (step: {id: Step, description: String, start: Date, completion: Date})[]`
-      *   **requires**: `goal` exists.
-      *   **effects**: Returns an array of all complete `Steps` for the given `goal`, including their `id`, `description`, `start` date, and `completion` date.
+      *   **requires**: none
+      *   **effects**: Returns an array of all `Steps` for the given `goal`, including their details. Returns empty array if no steps exist.
 
 # file: src/concepts/MilestoneTracker/MilestoneTrackerConcept.ts
 
@@ -619,51 +613,6 @@ export default class MilestoneTrackerConcept {
       start: s.start,
       completion: s.completion,
       isComplete: s.isComplete,
-    }));
-  }
-
-  /**
-   * _getIncompleteSteps (goal: Goal): (step: {id: Step, description: String, start: Date})[]
-   *
-   * @requires `goal` exists.
-   *
-   * @effects Returns an array of all incomplete `Steps` for the given `goal`, including their `id`, `description`, and `start` date.
-   */
-  async _getIncompleteSteps({
-    goal,
-  }: {
-    goal: Goal;
-  }): Promise<{ id: Step; description: string; start: Date }[]> {
-    const stepsDocs = await this.steps.find({ goalId: goal, isComplete: false })
-      .toArray();
-    return stepsDocs.map((s) => ({
-      id: s._id,
-      description: s.description,
-      start: s.start,
-    }));
-  }
-
-  /**
-   * _getCompleteSteps (goal: Goal): (step: {id: Step, description: String, start: Date, completion: Date})[]
-   *
-   * @requires `goal` exists.
-   *
-   * @effects Returns an array of all complete `Steps` for the given `goal`, including their `id`, `description`, `start` date, and `completion` date.
-   */
-  async _getCompleteSteps({
-    goal,
-  }: {
-    goal: Goal;
-  }): Promise<
-    { id: Step; description: string; start: Date; completion: Date }[]
-  > {
-    const stepsDocs = await this.steps.find({ goalId: goal, isComplete: true })
-      .toArray();
-    return stepsDocs.filter((s) => s.completion !== undefined).map((s) => ({ // filter for completed steps with a completion date
-      id: s._id,
-      description: s.description,
-      start: s.start,
-      completion: s.completion!, // assert non-null after filtering
     }));
   }
 

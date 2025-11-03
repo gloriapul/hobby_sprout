@@ -27,12 +27,12 @@
     *   **requires**: At least one `HobbyMatch` exists for this `user`.
     *   **effects**: Deletes all `HobbyMatches` for the user.
 *   **queries**:
-  *   `_getMatchedHobby (user: User): (hobby: String)[]`
-    *   **requires**: The `user` exists and has at least one `HobbyMatch`.
-    *   **effects**: Returns the most recent `matchedHobby` for the `user`.
   *   `_getAllHobbyMatches (user: User): (match: { id: ID, hobby: String, matchedAt: DateTime })[]`
-    *   **requires**: The `user` exists and has at least one `HobbyMatch`.
-    *   **effects**: Returns all hobby matches for the user, most recent first.
+    *   **requires**: none
+    *   **effects**: Returns an array of all hobby matches for the user, most recent first. Returns empty array if no matches exist.
+
+
+```typescript
 
 
 ```typescript
@@ -249,22 +249,6 @@ export default class QuizMatchmakerConcept {
       hobby: m.matchedHobby,
       matchedAt: m.matchedAt,
     }));
-  }
-
-  /**
-   * Query: Retrieves the most recent hobby match for a specific user.
-   * @returns The latest matched hobby, or empty array if none found.
-   */
-  async _getMatchedHobby(
-    { user }: { user: User },
-  ): Promise<{ hobby: string }[]> {
-    const match = await this.hobbyMatches.find({ user }).sort({ matchedAt: -1 })
-      .limit(1).toArray();
-    if (!match.length) {
-      return [];
-    }
-
-    return [{ hobby: match[0].matchedHobby }];
   }
 
   /**

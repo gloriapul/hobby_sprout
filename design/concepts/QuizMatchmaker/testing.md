@@ -22,15 +22,19 @@ const userA = "user:Alice" as ID;
 const userB = "user:Bob" as ID;
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 
-function hasError(result: unknown): boolean {
-  return typeof result === "object" && result !== null && "error" in result;
-}
-
 Deno.test("Principle: User can take 5-question quiz and receive hobby match", async () => {
   console.log("\n[Principle] Testing single quiz attempt and hobby match...");
   const [db, client] = await testDb();
   const quizConcept = new QuizMatchmakerConcept(db);
   try {
+    if (!GEMINI_API_KEY) {
+      console.log(
+        "   - GEMINI_API_KEY not set; skipping LLM generation in test",
+      );
+      return;
+    }
+
+    quizConcept.initializeLLM(GEMINI_API_KEY);
     const answers = [
       "I prefer outdoors.",
       "Creative activities.",
@@ -38,13 +42,7 @@ Deno.test("Principle: User can take 5-question quiz and receive hobby match", as
       "I love learning new skills.",
       "Moderate physical activity is fine.",
     ];
-    if (!GEMINI_API_KEY) {
-      console.log(
-        "   - GEMINI_API_KEY not set; skipping LLM generation in test",
-      );
-      return;
-    }
-    quizConcept.initializeLLM(GEMINI_API_KEY);
+
     const matchResult = await quizConcept.generateHobbyMatch({
       user: userA,
       answers,
@@ -62,23 +60,25 @@ Deno.test("Principle: User can take 5-question quiz and receive hobby match", as
       "Matched hobby should not be empty",
     );
     console.log(`   ✓ Hobby match generated: ${matchedHobby}`);
-    // Check that the match is stored and retrievable
-    const storedMatch = await quizConcept._getMatchedHobby({ user: userA });
+
+    // Check that the match is stored and retrievable using _getAllHobbyMatches
+    const storedMatches = await quizConcept._getAllHobbyMatches({
+      user: userA,
+    });
     assertEquals(
-      hasError(storedMatch),
-      false,
-      "Retrieving stored match should succeed",
+      Array.isArray(storedMatches) && storedMatches.length > 0,
+      true,
+      "Should have at least one stored match",
     );
-    if (!hasError(storedMatch) && Array.isArray(storedMatch)) {
-      assertEquals(
-        storedMatch[0].hobby,
-        matchedHobby,
-        "Stored hobby should match returned hobby",
-      );
-      console.log(
-        `   ✓ Hobby match stored and retrievable: ${storedMatch[0].hobby}`,
-      );
-    }
+    assertEquals(
+      storedMatches[0].hobby,
+      matchedHobby,
+      "Stored hobby should match returned hobby",
+    );
+    console.log(
+      `   ✓ Hobby match stored and retrievable: ${storedMatches[0].hobby}`,
+    );
+
     console.log("[Principle] PASS: Single quiz attempt and hobby match");
   } finally {
     await client.close();
@@ -96,6 +96,7 @@ Deno.test("Action: User can retake quiz and see multiple matches", async () => {
       );
       return;
     }
+
     quizConcept.initializeLLM(GEMINI_API_KEY);
     const answers1 = [
       "Outdoors.",

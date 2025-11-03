@@ -332,81 +332,6 @@ This document provides the REST API specification for all concepts in the HobbyS
 
 ---
 
-### POST /api/MilestoneTracker/_getIncompleteSteps
-
-**Description:** Retrieves all incomplete steps for a goal.
-
-**Requirements:**
-- goal exists
-
-**Effects:**
-- Returns an array of all incomplete Steps for the given goal
-
-**Request Body:**
-```json
-{
-  "goal": "string"
-}
-```
-
-**Success Response Body:**
-```json
-[
-  {
-    "id": "string",
-    "description": "string",
-    "start": "string"
-  }
-]
-```
-
-**Error Response Body:**
-```json
-{
-  "error": "string"
-}
-```
-
----
-
-### POST /api/MilestoneTracker/_getCompleteSteps
-
-**Description:** Retrieves all complete steps for a goal.
-
-**Requirements:**
-- goal exists
-
-**Effects:**
-- Returns an array of all complete Steps for the given goal
-
-**Request Body:**
-```json
-{
-  "goal": "string"
-}
-```
-
-**Success Response Body:**
-```json
-[
-  {
-    "id": "string",
-    "description": "string",
-    "start": "string",
-    "completion": "string"
-  }
-]
-```
-
-**Error Response Body:**
-```json
-{
-  "error": "string"
-}
-```
-
----
-
 ## UserProfile Concept
 
 **Purpose:** Allow users to share their personal info.
@@ -879,41 +804,6 @@ This document provides the REST API specification for all concepts in the HobbyS
 **Success Response Body:**
 ```json
 {}
-```
-
-**Error Response Body:**
-```json
-{
-  "error": "string"
-}
-```
-
----
-
-
-
-### POST /api/QuizMatchmaker/_getMatchedHobby
-
-**Description:** Retrieves the most recent matched hobby for a user.
-
-**Requirements:**
-- The user exists and has at least one HobbyMatch
-
-**Effects:**
-- Returns the most recent matchedHobby for the user
-
-**Request Body:**
-```json
-{
-  "user": "string"
-}
-```
-
-**Success Response Body:**
-```json
-[
-  { "hobby": "string" }
-]
 ```
 
 **Error Response Body:**
