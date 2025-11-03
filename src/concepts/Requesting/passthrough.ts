@@ -78,7 +78,15 @@ export const exclusions: Array<string> = [
   "/api/QuizMatchmaker/_getMatchedHobby",
 
   // Sessioning - used internally by syncs, not direct endpoints
-  "/api/Sessioning/create",
-  "/api/Sessioning/delete",
+  "/api/Sessioning/start",
+  "/api/Sessioning/end",
   "/api/Sessioning/_getUser",
+
+  // MilestoneTracker - private helper methods, not actions
+  "/api/MilestoneTracker/initializeLLM",
+  "/api/MilestoneTracker/validateStepQuality",
+
+  // QuizMatchmaker - private helper methods, not actions
+  "/api/QuizMatchmaker/sanitizeHobbyName",
+  "/api/QuizMatchmaker/initializeLLM",
 ];
