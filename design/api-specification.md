@@ -574,7 +574,7 @@ This document provides the REST API specification for all concepts in the HobbyS
 
 ---
 
-### POST /api/UserProfile/deleteProfile
+### POST /api/UserProfile/closeProfile
 
 **Description:** Permanently deletes a user profile and all associated data.
 
