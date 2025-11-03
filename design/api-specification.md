@@ -890,68 +890,7 @@ This document provides the REST API specification for all concepts in the HobbyS
 
 ---
 
-### POST /api/QuizMatchmaker/deleteHobbyMatchById
 
-**Description:** Deletes a specific hobby match for a user by match ID.
-
-**Requirements:**
-- The specified HobbyMatch exists for this user
-
-**Effects:**
-- Deletes only the specified HobbyMatch for the user
-
-**Request Body:**
-```json
-{
-  "user": "string",
-  "matchId": "string"
-}
-```
-
-**Success Response Body:**
-```json
-{}
-```
-
-**Error Response Body:**
-```json
-{
-  "error": "string"
-}
-```
-
----
-
-### POST /api/QuizMatchmaker/_getQuestions
-
-**Description:** Retrieves all predefined quiz questions.
-
-**Requirements:**
-- None (always available)
-
-**Effects:**
-- Returns an array of all predefined quiz questions, ordered by order
-
-**Request Body:**
-```json
-{}
-```
-
-**Success Response Body:**
-```json
-[
-  { "_id": "string", "text": "string", "order": "number" }
-]
-```
-
-**Error Response Body:**
-```json
-{
-  "error": "string"
-}
-```
-
----
 
 ### POST /api/QuizMatchmaker/_getMatchedHobby
 
