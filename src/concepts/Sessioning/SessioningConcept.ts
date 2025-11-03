@@ -71,13 +71,13 @@ export default class SessioningConcept {
   }
 
   /**
-   * getUser (session: Session): (user: User)
+   * _getUser (session: Session): (user: User)
    *
    * @requires session exists
    *
    * @effects returns the user associated with the session
    */
-  async getUser(
+  async _getUser(
     { session }: { session: Session },
   ): Promise<Array<{ user: User }> | [{ error: string }]> {
     const sessionDoc = await this.sessions.findOne({ _id: session });
@@ -87,17 +87,5 @@ export default class SessioningConcept {
     }
 
     return [{ user: sessionDoc.user }];
-  }
-
-  /**
-   * isLoggedIn (session: Session): (loggedIn: boolean)
-   *
-   * @effects returns true if session exists and is valid, false otherwise
-   */
-  async isLoggedIn(
-    { session }: { session: Session },
-  ): Promise<{ loggedIn: boolean }> {
-    const sessionDoc = await this.sessions.findOne({ _id: session });
-    return { loggedIn: sessionDoc !== null };
   }
 }

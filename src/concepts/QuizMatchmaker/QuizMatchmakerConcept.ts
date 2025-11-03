@@ -129,14 +129,6 @@ export default class QuizMatchmakerConcept {
   }
 
   /**
-   * Helper: Validate if a given question ID exists in our hardcoded list.
-   * @returns The HardcodedQuestion object if found, otherwise undefined.
-   */
-  public getQuestionById(questionId: Question): HardcodedQuestion | undefined {
-    return QUIZ_QUESTIONS.find((q) => q._id === questionId);
-  }
-
-  /**
    * Action: Generates a hobby match for a user based on their quiz responses using an LLM.
    *
    * @param user - The user taking the quiz

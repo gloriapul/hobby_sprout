@@ -23,7 +23,7 @@ Deno.test("Principle: User logs in, gets a session, can be identified by session
     console.log(`   ✓ Session started: ${session}`);
 
     console.log("2. Getting user from session");
-    const getUserResult = await sessioning.getUser({ session });
+    const getUserResult = await sessioning._getUser({ session });
     assertEquals(
       Array.isArray(getUserResult),
       true,
@@ -41,15 +41,6 @@ Deno.test("Principle: User logs in, gets a session, can be identified by session
     );
     console.log(`   ✓ Correct user retrieved from session`);
 
-    console.log("3. Checking if user is logged in");
-    const isLoggedInResult = await sessioning.isLoggedIn({ session });
-    assertEquals(
-      isLoggedInResult.loggedIn,
-      true,
-      "User should be logged in",
-    );
-    console.log(`   ✓ User is logged in`);
-
     console.log("4. Ending the session");
     const endResult = await sessioning.end({ session });
     assertNotEquals(
@@ -60,11 +51,16 @@ Deno.test("Principle: User logs in, gets a session, can be identified by session
     console.log(`   ✓ Session ended`);
 
     console.log("5. Verifying session no longer exists");
-    const checkLoggedIn = await sessioning.isLoggedIn({ session });
+    const checkLoggedIn = await sessioning._getUser({ session });
     assertEquals(
-      checkLoggedIn.loggedIn,
-      false,
-      "User should not be logged in after session ends",
+      Array.isArray(checkLoggedIn),
+      true,
+      "Should return an array",
+    );
+    assertEquals(
+      "error" in checkLoggedIn[0],
+      true,
+      "Should return error for invalid session",
     );
     console.log(`   ✓ Session no longer valid`);
     console.log(
@@ -92,8 +88,8 @@ Deno.test("Action: Multiple users can have separate sessions", async () => {
     console.log(`   ✓ Two sessions created`);
 
     console.log("2. Verifying each session returns correct user");
-    const userFromA = await sessioning.getUser({ session: sessionAId });
-    const userFromB = await sessioning.getUser({ session: sessionBId });
+    const userFromA = await sessioning._getUser({ session: sessionAId });
+    const userFromB = await sessioning._getUser({ session: sessionBId });
 
     assertEquals(
       (userFromA[0] as { user: ID }).user,
