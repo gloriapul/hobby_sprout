@@ -6,7 +6,7 @@
 
 # MilestoneTracker Concept Specification
 
-*   **concept**: MilestoneTracker \[User]
+*   **concept**: MilestoneTracker [User]
 *   **purpose**: Allow users to monitor the progress that they are making toward their goals.
 *   **principle**: After a user inputs their goal, they will have the option of having an LLM generate their list of recommended steps or will be able to input their own. They can then mark steps as complete, and will be allowed to see those that they have yet to complete and those that have been completed.
 *   **state**:

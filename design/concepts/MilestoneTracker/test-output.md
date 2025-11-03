@@ -30,19 +30,21 @@ Action: generateSteps produces quality steps via LLM ...
 2. Generating steps using LLM
 3. Received steps from the LLM
 4. Listing generated steps
-   1. Define the specific niche and target audience for your world issues podcast
-   2. Research and outline potential episode topics and formats
-   3. Identify and gather reliable sources for world issue information
-   4. Practice active listening and note-taking techniques for research
-   5. Learn basic audio recording principles and equipment (microphone, headphones, software)
-   6. Record and edit a test episode, focusing on clear audio and concise narration
-   7. Develop a consistent recording and editing workflow
-   8. Learn about podcast hosting platforms and how to upload episodes
-   9. Create compelling episode titles and descriptions
-   10. Promote your podcast on relevant social media platforms and communities
-   ✓ All 10 generated steps pass quality validation
+   1. Define your podcast's niche within world issues and target audience
+   2. Outline the format and style of your podcast (e.g., interview, solo narration, panel discussion)
+   3. Research and select reliable sources for world issue information
+   4. Develop a content calendar for your first 5-10 episodes
+   5. Learn the basics of audio recording and editing software
+   6. Acquire a decent microphone and headphones
+   7. Record and edit your first pilot episode
+   8. Get feedback on your pilot episode from trusted sources
+   9. Refine your recording and editing process based on feedback
+   10. Choose a podcast hosting platform
+   11. Create cover art and descriptive show notes for your podcast
+   12. Publish your first episode and promote it through social media and relevant communities
+   ✓ All 12 generated steps pass quality validation
 5. Removing one generated step
-   ✓ Removed one generated step; 9 remaining
+   ✓ Removed one generated step; 11 remaining
 5. Action requirements satisfied: LLM-generated steps meet quality criteria
 ----- output end -----
 Action: generateSteps produces quality steps via LLM ... ok (2s)
@@ -55,12 +57,12 @@ Action: robust error handling for invalid inputs and states ...
 3. Testing closing a non-existent goal
    - Expected error received: "Goal goal:nonexistent not found or is not active."
 4. Testing closing an already closed goal
-   - Expected error received: "Goal 019a2d5f-388b-77a5-89ca-5370bd2918b2 not found or is not active."
+   - Expected error received: "Goal 019a4b15-d49b-7b6f-9208-53ceb31b0bca not found or is not active."
 5. Attempting to complete a non-existent step
    - Expected error received: "Step step:nonexistent not found."
 6. Action requirements satisfied: Invalid inputs and edge cases are handled correctly
 ----- output end -----
-Action: robust error handling for invalid inputs and states ... ok (849ms)
+Action: robust error handling for invalid inputs and states ... ok (934ms)
 Action: removeStep removes an incomplete step and validates constraints ...
 ------- output -------
 1. Create goal and add steps
@@ -77,7 +79,7 @@ Action: removeStep removes an incomplete step and validates constraints ...
 6. Action requirements satisfied: removeStep enforces constraints and removes incomplete steps
 ----- output end -----
 Action: removeStep removes an incomplete step and validates constraints ... ok (1s)
-Action: regenerateSteps deletes and regenerates steps if opted for ... ok (5s)
+Action: regenerateSteps deletes and regenerates steps if opted for ... ok (4s)
 
 ok | 6 passed | 0 failed (11s)
 
