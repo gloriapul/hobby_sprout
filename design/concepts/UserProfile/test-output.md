@@ -9,10 +9,10 @@ Principle: User creates profile, adds personal information ...
 3. Setting profile image for the profile
    ✓ Profile image set successfully
 4. Verifying user profile information
-   ✓ Profile verification successful: User has correct name, image, and active status
+   ✓ Profile verification successful: User has correct name and image
 5. Principle satisfied: User profile created and information is visible
 ----- output end -----
-Principle: User creates profile, adds personal information, and other users can see it ... ok (720ms)
+Principle: User creates profile, adds personal information ... ok (876ms)
 Action: setHobby/closeHobby manages hobby assignments and status ...
 ------- output -------
 1. Creating a profile for hobby management
@@ -25,22 +25,37 @@ Action: setHobby/closeHobby manages hobby assignments and status ...
    ✓ Hobby "Photography" closed successfully
 5. Action requirements satisfied: setHobby and closeHobby work correctly with proper validation
 ----- output end -----
-Action: setHobby/closeHobby manages hobby assignments and status ... ok (791ms)
-Action: createProfile/closeProfile enforces profile uniqueness and lifecycle ...
+Action: setHobby/closeHobby manages hobby assignments and status ... ok (944ms)
+Action: createProfile/deleteProfile enforces profile uniqueness and lifecycle ...
 ------- output -------
 1. Creating a user profile
    ✓ Profile created successfully for user: user:Alice
 2. Testing profile uniqueness - attempting to create duplicate profile
    ✓ Duplicate profile correctly rejected with error: "Profile for user user:Alice already exists."
-3. Closing the user profile
-   ✓ Profile closed successfully
-4. Verifying profile inactive status
-   ✓ Profile verified as inactive
-5. Action requirements satisfied: Profile creation enforces uniqueness and profiles can be closed
+3. Deleting the user profile
+   ✓ Profile deleted successfully
+4. Verifying profile is permanently removed
+   ✓ Profile verified as permanently removed
+5. Action requirements satisfied: Profile creation enforces uniqueness and profiles can be deleted
 ----- output end -----
-Action: createProfile/closeProfile enforces profile uniqueness and lifecycle ... ok (708ms)
+Action: createProfile/deleteProfile enforces profile uniqueness and lifecycle ... ok (779ms)
+Action: deleteProfile permanently removes profile and associated data ...
+------- output -------
+1. Creating a user profile with hobbies
+   ✓ Profile created with name and 2 hobbies
+2. Verifying profile and hobbies exist
+   ✓ Profile and 2 hobbies verified
+3. Deleting the user profile
+   ✓ Profile deleted successfully
+4. Verifying profile and hobbies are permanently removed
+   ✓ Profile and all associated data permanently removed
+5. Attempting to delete non-existent profile
+   ✓ Correctly rejected with error: "User profile for user:Alice not found."
+6. Action requirements satisfied: deleteProfile removes all user data permanently
+----- output end -----
+Action: deleteProfile permanently removes profile and associated data ... ok (1s)
 
-ok | 3 passed | 0 failed (2s)
+ok | 4 passed | 0 failed (3s)
 
 ## Summary
 - Profile creation and closure works with proper uniqueness validation

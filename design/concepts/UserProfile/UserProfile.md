@@ -35,9 +35,9 @@
         *   **requires**: the user to exist in the set of `Users`.
             A `UserHobby` record for the specified `user` and `hobby` must exist and be `active`.
         *   **effects**: sets the `active` status of the specified `UserHobby` record to `false` (inactive).
-    *   `closeProfile (user: User): ()`
+    *   `deleteProfile (user: User): ()`
         *   **requires**: the user to exist in the set of `Users`.
-        *   **effects**: sets the `active` status of the user's profile to `false`, indicating the profile is closed.
+        *   **effects**: permanently deletes the user's profile and all associated hobby records from the database.
 
 # file: src/concepts/UserProfileConcept.ts
 
@@ -58,13 +58,11 @@ type Image = string; // Assuming Image will be a string (e.g., URL or base64 dat
 /**
  * State:
  * a set of User with
- *   an active status Boolean
  *   a displayname String
  *   a profile Image
  */
 interface UserProfileDoc {
   _id: User;
-  active: boolean;
   displayname?: string; // Optional, as it might not be set initially
   profile?: Image; // Optional, as it might not be set initially
 }
@@ -105,8 +103,8 @@ export default class UserProfileConcept {
    *
    * @requires no profile for the given `user` already exists in this concept's state.
    *
-   * @effects creates a new user profile record for the given `user` with an `active` status of true,
-   * and no initial display name or profile image. This action enables subsequent profile modifications.
+   * @effects creates a new user profile record for the given `user` with no initial display name
+   * or profile image. This action enables subsequent profile modifications.
    */
   async createProfile(
     // passwordauthentication concept would be paired with this concept in a sync
@@ -120,7 +118,6 @@ export default class UserProfileConcept {
 
     await this.userProfiles.insertOne({
       _id: user,
-      active: true,
       displayname: undefined,
       profile: undefined,
     });
@@ -257,31 +254,37 @@ export default class UserProfileConcept {
         };
       }
       return {
-        error:
-          `Failed to close hobby '${hobby}' for user ${user}.`,
+        error: `Failed to close hobby '${hobby}' for user ${user}.`,
       };
     }
     return {};
   }
 
   /**
-   * closeProfile (user: User)
+   * deleteProfile (user: User)
    *
    * @requires the user to exist in the set of users managed by this concept.
    *
-   * @effects sets the user's account `active` status to false, indicating the profile is closed.
+   * @effects permanently deletes the user's profile and all associated hobby records from the database.
    */
-  async closeProfile(
+  async deleteProfile(
     { user }: { user: User },
   ): Promise<Empty | { error: string }> {
-    const result = await this.userProfiles.updateOne(
-      { _id: user },
-      { $set: { active: false } },
-    );
-
-    if (result.matchedCount === 0) {
+    const profile = await this.userProfiles.findOne({ _id: user });
+    if (!profile) {
       return { error: `User profile for ${user} not found.` };
     }
+
+    // delete all hobby records associated with this user
+    await this.userHobbies.deleteMany({ userId: user });
+
+    // delete the user profile
+    const result = await this.userProfiles.deleteOne({ _id: user });
+
+    if (result.deletedCount === 0) {
+      return { error: `Failed to delete profile for user ${user}.` };
+    }
+
     return {};
   }
 
@@ -290,7 +293,7 @@ export default class UserProfileConcept {
    *
    * @requires user to exist in the set of users.
    *
-   * @effects returns the full profile data (active status, display name, profile image)
+   * @effects returns the full profile data (display name, profile image)
    *             for the specified user. Returns an array containing one profile document.
    */
   async _getUserProfile(

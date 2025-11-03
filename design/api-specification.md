@@ -419,7 +419,7 @@ This document provides the REST API specification for all concepts in the HobbyS
 - No profile for the given user already exists
 
 **Effects:**
-- Creates a new user profile record with active status true
+- Creates a new user profile record
 - No initial display name or profile image
 
 **Request Body:**
@@ -574,15 +574,15 @@ This document provides the REST API specification for all concepts in the HobbyS
 
 ---
 
-### POST /api/UserProfile/closeProfile
+### POST /api/UserProfile/deleteProfile
 
-**Description:** Closes a user profile.
+**Description:** Permanently deletes a user profile and all associated data.
 
 **Requirements:**
 - The user must exist in the set of Users
 
 **Effects:**
-- Sets the active status of the user's profile to false
+- Permanently deletes the user's profile and all associated hobby records from the database
 
 **Request Body:**
 ```json
@@ -627,7 +627,6 @@ This document provides the REST API specification for all concepts in the HobbyS
 [
   {
     "_id": "string",
-    "active": "boolean",
     "displayname": "string",
     "profile": "string"
   }

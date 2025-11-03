@@ -63,9 +63,8 @@ Deno.test("Principle: User creates profile, adds personal information", async ()
     if (!("error" in profileResult)) {
       assertEquals(profileResult[0].displayname, "HobbyEnthusiast");
       assertEquals(profileResult[0].profile, "https://example.com/profile.jpg");
-      assertEquals(profileResult[0].active, true);
       console.log(
-        `   ✓ Profile verification successful: User has correct name, image, and active status`,
+        `   ✓ Profile verification successful: User has correct name and image`,
       );
       console.log(
         "5. Principle satisfied: User profile created and information is visible",
@@ -75,7 +74,6 @@ Deno.test("Principle: User creates profile, adds personal information", async ()
     await client.close();
   }
 });
-
 
 Deno.test("Action: setHobby/closeHobby manages hobby assignments and status", async () => {
   const [db, client] = await testDb();
@@ -138,7 +136,7 @@ Deno.test("Action: setHobby/closeHobby manages hobby assignments and status", as
   }
 });
 
-Deno.test("Action: createProfile/closeProfile enforces profile uniqueness and lifecycle", async () => {
+Deno.test("Action: createProfile/deleteProfile enforces profile uniqueness and lifecycle", async () => {
   const [db, client] = await testDb();
   const profileConcept = new UserProfileConcept(db);
 
@@ -169,30 +167,94 @@ Deno.test("Action: createProfile/closeProfile enforces profile uniqueness and li
       );
     }
 
-    console.log("3. Closing the user profile");
+    console.log("3. Deleting the user profile");
 
-    const closeResult = await profileConcept.closeProfile({ user: userA });
+    const deleteResult = await profileConcept.deleteProfile({ user: userA });
     assertEquals(
-      "error" in closeResult,
+      "error" in deleteResult,
       false,
-      "Closing profile should succeed",
+      "Deleting profile should succeed",
     );
-    console.log(`   ✓ Profile closed successfully`);
+    console.log(`   ✓ Profile deleted successfully`);
 
-    console.log("4. Verifying profile inactive status");
+    console.log("4. Verifying profile is permanently removed");
 
     const profileResult = await profileConcept._getUserProfile({ user: userA });
-    if (!("error" in profileResult)) {
-      assertEquals(
-        profileResult[0].active,
-        false,
-        "Profile should be inactive",
-      );
-      console.log(`   ✓ Profile verified as inactive`);
+    assertEquals(
+      "error" in profileResult,
+      true,
+      "Profile should not exist after deletion",
+    );
+    console.log(`   ✓ Profile verified as permanently removed`);
+    console.log(
+      "5. Action requirements satisfied: Profile creation enforces uniqueness and profiles can be deleted",
+    );
+  } finally {
+    await client.close();
+  }
+});
+
+Deno.test("Action: deleteProfile permanently removes profile and associated data", async () => {
+  const [db, client] = await testDb();
+  const profileConcept = new UserProfileConcept(db);
+
+  try {
+    console.log("1. Creating a user profile with hobbies");
+    await profileConcept.createProfile({ user: userA });
+    await profileConcept.setName({ user: userA, displayname: "TestUser" });
+    await profileConcept.setHobby({ user: userA, hobby: "Photography" });
+    await profileConcept.setHobby({ user: userA, hobby: "Hiking" });
+    console.log(`   ✓ Profile created with name and 2 hobbies`);
+
+    console.log("2. Verifying profile and hobbies exist");
+    const profileBefore = await profileConcept._getUserProfile({ user: userA });
+    const hobbiesBefore = await profileConcept._getUserHobbies({ user: userA });
+    assertEquals("error" in profileBefore, false, "Profile should exist");
+    if (!("error" in hobbiesBefore)) {
+      assertEquals(hobbiesBefore.length, 2, "Should have 2 hobbies");
+      console.log(`   ✓ Profile and ${hobbiesBefore.length} hobbies verified`);
+    }
+
+    console.log("3. Deleting the user profile");
+    const deleteResult = await profileConcept.deleteProfile({ user: userA });
+    assertEquals(
+      "error" in deleteResult,
+      false,
+      "Deleting profile should succeed",
+    );
+    console.log(`   ✓ Profile deleted successfully`);
+
+    console.log("4. Verifying profile and hobbies are permanently removed");
+    const profileAfter = await profileConcept._getUserProfile({ user: userA });
+    const hobbiesAfter = await profileConcept._getUserHobbies({ user: userA });
+    assertEquals(
+      "error" in profileAfter,
+      true,
+      "Profile should not exist after deletion",
+    );
+    assertEquals(
+      "error" in hobbiesAfter,
+      true,
+      "Hobbies query should fail after profile deletion",
+    );
+    console.log(`   ✓ Profile and all associated data permanently removed`);
+
+    console.log("5. Attempting to delete non-existent profile");
+    const deleteAgain = await profileConcept.deleteProfile({ user: userA });
+    assertEquals(
+      "error" in deleteAgain,
+      true,
+      "Deleting non-existent profile should fail",
+    );
+    if ("error" in deleteAgain) {
       console.log(
-        "5. Action requirements satisfied: Profile creation enforces uniqueness and profiles can be closed",
+        `   ✓ Correctly rejected with error: "${deleteAgain.error}"`,
       );
     }
+
+    console.log(
+      "6. Action requirements satisfied: deleteProfile removes all user data permanently",
+    );
   } finally {
     await client.close();
   }
