@@ -13,23 +13,23 @@
 *   **state**:
     *   A set of `Users` with
         *   a `username` of type `String`
-        *   a `password` of type `String`
+        *   a `passwordHash` of type `String` (hashed using SHA-256)
 *   **actions**:
     *   `register(username: String, password: String): (user: User)`
         *   **requires**: No `User` with the given `username` already exists.
-        *   **effects**: Creates a new `User` instance; sets that user's username to `username` and stores the `password` for that user; returns the user ID.
+        *   **effects**: Creates a new `User` instance; sets that user's username to `username` and stores a hash of the `password` for that user; returns the user ID.
     
     *   `register(username: String, password: String): (error: String)`
         *   **requires**: A `User` with the given `username` already exists.
         *   **effects**: Returns an error message indicating the username is taken.
     
     *   `authenticate(username: String, password: String): (user: User)`
-        *   **requires**: A `User` with the given `username` exists AND the `password` matches the stored `password` for that user.
+        *   **requires**: A `User` with the given `username` exists AND the hash of the `password` matches the stored `passwordHash` for that user.
         *   **effects**: Returns the identifier of the authenticated `User` as `user`.
     
     *   `authenticate(username: String, password: String): (error: String)`
-        *   **requires**: A `User` with the given `username` does NOT exist OR the `password` does NOT match the stored `password`.
-        *   **effects**: Returns an error message indicating invalid credentials (e.g., "Invalid username or password").
+        *   **requires**: A `User` with the given `username` does NOT exist OR the hash of the `password` does NOT match the stored `passwordHash`.
+        *   **effects**: Returns an error message indicating invalid credentials (e.g., "Invalid username or password.").
     
     *   `deleteUser(user: User): ()`
         *   **requires**: A `User` with the given `user` ID exists.
@@ -48,6 +48,14 @@ import { Collection, Db } from "mongodb";
 import { Empty, ID } from "@utils/types.ts";
 import { freshID } from "@utils/database.ts";
 
+// A simple helper function to hash passwords using the Web Crypto API.
+async function hashPassword(password: string): Promise<string> {
+  const data = new TextEncoder().encode(password);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 // Collection prefix to ensure namespace separation
 const PREFIX = "PasswordAuthentication" + ".";
 
@@ -64,7 +72,7 @@ type User = ID;
 interface UserDocument {
   _id: User; // The ID of the user, generic type
   username: string;
-  password: string; // Storing password directly, string was specified to be sufficient
+  passwordHash: string; // Storing hashed password
 }
 
 /**
@@ -99,10 +107,13 @@ export default class PasswordAuthenticationConcept {
     // create a new User document
     const newUser: User = freshID() as User; // generate a fresh ID for the new user
 
+    // hash the password before storing
+    const passwordHash = await hashPassword(password);
+
     await this.users.insertOne({
       _id: newUser,
       username,
-      password, // store password
+      passwordHash, // store hashed password
     });
 
     // new user created
@@ -126,8 +137,9 @@ export default class PasswordAuthenticationConcept {
       return { error: "Invalid username or password." };
     }
 
-    // `password` matches the stored `password`
-    if (password !== userDoc.password) {
+    // hash the provided password and compare with stored hash
+    const providedPasswordHash = await hashPassword(password);
+    if (userDoc.passwordHash !== providedPasswordHash) {
       // password mismatch. Return generic error for security.
       return { error: "Invalid username or password." };
     }
