@@ -25,12 +25,17 @@
  */
 
 export const inclusions: Record<string, string> = {
-  // Feel free to delete these example inclusions
-  "/api/LikertSurvey/_getSurveyQuestions": "this is a public query",
-  "/api/LikertSurvey/_getSurveyResponses": "responses are public",
-  "/api/LikertSurvey/_getRespondentAnswers": "answers are visible",
-  "/api/LikertSurvey/submitResponse": "allow anyone to submit response",
-  "/api/LikertSurvey/updateResponse": "allow anyone to update their response",
+  // PasswordAuthentication - public actions for registration
+  "/api/PasswordAuthentication/register": "public action - anyone can register",
+
+  // QuizMatchmaker - public query for quiz questions
+  "/api/QuizMatchmaker/getQuestionById": "public query - questions are public",
+
+  // Internal/utility methods (typically not called from frontend)
+  "/api/MilestoneTracker/initializeLLM": "internal utility method",
+  "/api/MilestoneTracker/validateStepQuality": "internal utility method",
+  "/api/QuizMatchmaker/sanitizeHobbyName": "internal utility method",
+  "/api/QuizMatchmaker/initializeLLM": "internal utility method",
 };
 
 /**
@@ -44,7 +49,47 @@ export const inclusions: Record<string, string> = {
  */
 
 export const exclusions: Array<string> = [
-  // Feel free to delete these example exclusions
+  // MilestoneTracker - require authentication
+  "/api/MilestoneTracker/createGoal",
+  "/api/MilestoneTracker/generateSteps",
+  "/api/MilestoneTracker/addStep",
+  "/api/MilestoneTracker/completeStep",
+  "/api/MilestoneTracker/removeStep",
+  "/api/MilestoneTracker/closeGoal",
+  "/api/MilestoneTracker/regenerateSteps",
+  "/api/MilestoneTracker/_getGoal",
+  "/api/MilestoneTracker/_getAllGoals",
+  "/api/MilestoneTracker/_getSteps",
+  "/api/MilestoneTracker/_getIncompleteSteps",
+  "/api/MilestoneTracker/_getCompleteSteps",
+
+  // PasswordAuthentication - authenticate and deleteUser require syncs
+  "/api/PasswordAuthentication/authenticate",
+  "/api/PasswordAuthentication/deleteUser",
+
+  // QuizMatchmaker - require authentication
+  "/api/QuizMatchmaker/generateHobbyMatch",
+  "/api/QuizMatchmaker/_getAllHobbyMatches",
+  "/api/QuizMatchmaker/_getMatchedHobby",
+  "/api/QuizMatchmaker/deleteHobbyMatches",
+
+  // UserProfile - all require authentication
+  "/api/UserProfile/createProfile",
+  "/api/UserProfile/setName",
+  "/api/UserProfile/setImage",
+  "/api/UserProfile/setHobby",
+  "/api/UserProfile/closeHobby",
+  "/api/UserProfile/closeProfile",
+  "/api/UserProfile/_getUserProfile",
+  "/api/UserProfile/_getUserHobbies",
+  "/api/UserProfile/_getActiveHobbies",
+
+  // LikertSurvey - not used in this app (template example)
   "/api/LikertSurvey/createSurvey",
   "/api/LikertSurvey/addQuestion",
+  "/api/LikertSurvey/submitResponse",
+  "/api/LikertSurvey/updateResponse",
+  "/api/LikertSurvey/_getSurveyQuestions",
+  "/api/LikertSurvey/_getSurveyResponses",
+  "/api/LikertSurvey/_getRespondentAnswers",
 ];

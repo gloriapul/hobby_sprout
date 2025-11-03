@@ -287,7 +287,7 @@ export default class QuizMatchmakerConcept {
   /**
    * Action: Deletes all hobby matches for a user (to allow a full reset).
    */
-  async _deleteHobbyMatches(
+  async deleteHobbyMatches(
     { user }: { user: User },
   ): Promise<Empty | { error: string }> {
     const result = await this.hobbyMatches.deleteMany({ user });

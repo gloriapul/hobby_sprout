@@ -207,12 +207,12 @@ export default class QuizMatchmakerConcept {
    */
   async _getAllHobbyMatches(
     { user }: { user: User },
-  ): Promise<{ hobby: string; matchedAt: Date }[] | { error: string }> {
+  ): Promise<{ hobby: string; matchedAt: Date }[]> {
     const matches = await this.hobbyMatches.find({ user }).sort({
       matchedAt: -1,
     }).toArray();
     if (!matches.length) {
-      return { error: `No hobby matches found for user ${user}.` };
+      return [];
     }
     return matches.map((m) => ({
       id: m._id,
@@ -223,15 +223,15 @@ export default class QuizMatchmakerConcept {
 
   /**
    * Query: Retrieves the most recent hobby match for a specific user.
-   * @returns The latest matched hobby, or error if none found.
+   * @returns The latest matched hobby, or empty array if none found.
    */
   async _getMatchedHobby(
     { user }: { user: User },
-  ): Promise<{ hobby: string }[] | { error: string }> {
+  ): Promise<{ hobby: string }[]> {
     const match = await this.hobbyMatches.find({ user }).sort({ matchedAt: -1 })
       .limit(1).toArray();
     if (!match.length) {
-      return { error: `No hobby match found for user ${user}.` };
+      return [];
     }
 
     return [{ hobby: match[0].matchedHobby }];
@@ -240,7 +240,7 @@ export default class QuizMatchmakerConcept {
   /**
    * Action: Deletes all hobby matches for a user (to allow a full reset).
    */
-  async _deleteHobbyMatches(
+  async deleteHobbyMatches(
     { user }: { user: User },
   ): Promise<Empty | { error: string }> {
     const result = await this.hobbyMatches.deleteMany({ user });
