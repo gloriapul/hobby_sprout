@@ -13,7 +13,6 @@
 *   **principle**: after setting a name, hobby, and image for a user, users can see their consolidated information
 *   **state**:
     *   A set of `Users` with
-        *   an `active` status of type `Boolean`
         *   a `displayname` of type `String`
         *   a `profile` of type `Image`
     *   A set of `UserHobbies` with
@@ -21,6 +20,9 @@
         *   a `hobby` of type `String`
         *   an `active` status of type `Boolean`
 *   **actions**:
+    *   `createProfile (user: User): ()`
+        *   **requires**: no profile for the given `user` already exists in this concept's state.
+        *   **effects**: creates a new user profile record for the given `user` with no initial display name or profile image. This action enables subsequent profile modifications.
     *   `setName (user: User, displayname: String): ()`
         *   **requires**: the user to exist in the set of users.
         *   **effects**: sets the user's `displayname` to the provided `displayname`.
@@ -298,10 +300,10 @@ export default class UserProfileConcept {
    */
   async _getUserProfile(
     { user }: { user: User },
-  ): Promise<UserProfileDoc[] | { error: string }> {
+  ): Promise<UserProfileDoc[]> {
     const profile = await this.userProfiles.findOne({ _id: user });
     if (!profile) {
-      return { error: `User profile for ${user} not found.` };
+      return [];
     }
     return [profile];
   }
@@ -316,10 +318,10 @@ export default class UserProfileConcept {
    */
   async _getUserHobbies(
     { user }: { user: User },
-  ): Promise<{ hobby: string; active: boolean }[] | { error: string }> {
+  ): Promise<{ hobby: string; active: boolean }[]> {
     const userProfile = await this.userProfiles.findOne({ _id: user });
     if (!userProfile) {
-      return { error: `User profile for ${user} not found.` };
+      return [];
     }
     const hobbies = await this.userHobbies.find({ userId: user }).toArray();
     // map to the specified return structure
@@ -336,10 +338,10 @@ export default class UserProfileConcept {
    */
   async _getActiveHobbies(
     { user }: { user: User },
-  ): Promise<{ hobby: string }[] | { error: string }> {
+  ): Promise<{ hobby: string }[]> {
     const userProfile = await this.userProfiles.findOne({ _id: user });
     if (!userProfile) {
-      return { error: `User profile for ${user} not found.` };
+      return [];
     }
     const activeHobbies = await this.userHobbies.find({
       userId: user,

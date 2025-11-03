@@ -171,9 +171,9 @@ Deno.test("Action: createProfile/closeProfile enforces profile uniqueness and li
 
     const profileResult = await profileConcept._getUserProfile({ user: userA });
     assertEquals(
-      "error" in profileResult,
-      true,
-      "Profile should not exist after deletion",
+      profileResult.length,
+      0,
+      "Profile should not exist after deletion (empty array)",
     );
     console.log(`   ✓ Profile verified as permanently removed`);
     console.log(
@@ -199,11 +199,9 @@ Deno.test("Action: closeProfile permanently removes profile and associated data"
     console.log("2. Verifying profile and hobbies exist");
     const profileBefore = await profileConcept._getUserProfile({ user: userA });
     const hobbiesBefore = await profileConcept._getUserHobbies({ user: userA });
-    assertEquals("error" in profileBefore, false, "Profile should exist");
-    if (!("error" in hobbiesBefore)) {
-      assertEquals(hobbiesBefore.length, 2, "Should have 2 hobbies");
-      console.log(`   ✓ Profile and ${hobbiesBefore.length} hobbies verified`);
-    }
+    assertEquals(profileBefore.length, 1, "Profile should exist");
+    assertEquals(hobbiesBefore.length, 2, "Should have 2 hobbies");
+    console.log(`   ✓ Profile and ${hobbiesBefore.length} hobbies verified`);
 
     console.log("3. Deleting the user profile");
     const deleteResult = await profileConcept.closeProfile({ user: userA });
@@ -218,14 +216,14 @@ Deno.test("Action: closeProfile permanently removes profile and associated data"
     const profileAfter = await profileConcept._getUserProfile({ user: userA });
     const hobbiesAfter = await profileConcept._getUserHobbies({ user: userA });
     assertEquals(
-      "error" in profileAfter,
-      true,
-      "Profile should not exist after deletion",
+      profileAfter.length,
+      0,
+      "Profile should not exist after deletion (empty array)",
     );
     assertEquals(
-      "error" in hobbiesAfter,
-      true,
-      "Hobbies query should fail after profile deletion",
+      hobbiesAfter.length,
+      0,
+      "Hobbies should not exist after profile deletion (empty array)",
     );
     console.log(`   ✓ Profile and all associated data permanently removed`);
 

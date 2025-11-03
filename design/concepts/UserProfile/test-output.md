@@ -12,7 +12,7 @@ Principle: User creates profile, adds personal information ...
    ✓ Profile verification successful: User has correct name and image
 5. Principle satisfied: User profile created and information is visible
 ----- output end -----
-Principle: User creates profile, adds personal information ... ok (876ms)
+Principle: User creates profile, adds personal information ... ok (987ms)
 Action: setHobby/closeHobby manages hobby assignments and status ...
 ------- output -------
 1. Creating a profile for hobby management
@@ -25,7 +25,7 @@ Action: setHobby/closeHobby manages hobby assignments and status ...
    ✓ Hobby "Photography" closed successfully
 5. Action requirements satisfied: setHobby and closeHobby work correctly with proper validation
 ----- output end -----
-Action: setHobby/closeHobby manages hobby assignments and status ... ok (944ms)
+Action: setHobby/closeHobby manages hobby assignments and status ... ok (820ms)
 Action: createProfile/closeProfile enforces profile uniqueness and lifecycle ...
 ------- output -------
 1. Creating a user profile
@@ -38,7 +38,7 @@ Action: createProfile/closeProfile enforces profile uniqueness and lifecycle ...
    ✓ Profile verified as permanently removed
 5. Action requirements satisfied: Profile creation enforces uniqueness and profiles can be deleted
 ----- output end -----
-Action: createProfile/closeProfile enforces profile uniqueness and lifecycle ... ok (779ms)
+Action: createProfile/closeProfile enforces profile uniqueness and lifecycle ... ok (813ms)
 Action: closeProfile permanently removes profile and associated data ...
 ------- output -------
 1. Creating a user profile with hobbies
