@@ -35,7 +35,7 @@
         *   **requires**: the user to exist in the set of `Users`.
             A `UserHobby` record for the specified `user` and `hobby` must exist and be `active`.
         *   **effects**: sets the `active` status of the specified `UserHobby` record to `false` (inactive).
-    *   `deleteProfile (user: User): ()`
+    *   `closeProfile (user: User): ()`
         *   **requires**: the user to exist in the set of `Users`.
         *   **effects**: permanently deletes the user's profile and all associated hobby records from the database.
 
@@ -261,13 +261,13 @@ export default class UserProfileConcept {
   }
 
   /**
-   * deleteProfile (user: User)
+   * closeProfile (user: User)
    *
    * @requires the user to exist in the set of users managed by this concept.
    *
    * @effects permanently deletes the user's profile and all associated hobby records from the database.
    */
-  async deleteProfile(
+  async closeProfile(
     { user }: { user: User },
   ): Promise<Empty | { error: string }> {
     const profile = await this.userProfiles.findOne({ _id: user });

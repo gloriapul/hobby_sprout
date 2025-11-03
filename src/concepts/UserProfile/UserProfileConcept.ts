@@ -215,13 +215,13 @@ export default class UserProfileConcept {
   }
 
   /**
-   * deleteProfile (user: User)
+   * closeProfile (user: User)
    *
    * @requires the user to exist in the set of users managed by this concept.
    *
    * @effects permanently deletes the user's profile and all associated hobby records from the database.
    */
-  async deleteProfile(
+  async closeProfile(
     { user }: { user: User },
   ): Promise<Empty | { error: string }> {
     const profile = await this.userProfiles.findOne({ _id: user });

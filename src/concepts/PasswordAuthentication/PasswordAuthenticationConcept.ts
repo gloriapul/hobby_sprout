@@ -1,5 +1,5 @@
 import { Collection, Db } from "mongodb";
-import { ID } from "@utils/types.ts";
+import { Empty, ID } from "@utils/types.ts";
 import { freshID } from "@utils/database.ts";
 
 // Collection prefix to ensure namespace separation
@@ -88,5 +88,24 @@ export default class PasswordAuthenticationConcept {
 
     // user successfully logged in
     return { user: userDoc._id };
+  }
+
+  /**
+   * deleteUser (user: User)
+   *
+   * @requires a User with the given `user` ID exists
+   *
+   * @effects permanently deletes the User and their stored credentials
+   */
+  async deleteUser(
+    { user }: { user: User },
+  ): Promise<Empty | { error: string }> {
+    const result = await this.users.deleteOne({ _id: user });
+
+    if (result.deletedCount === 0) {
+      return { error: `User ${user} not found.` };
+    }
+
+    return {};
   }
 }

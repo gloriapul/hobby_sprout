@@ -713,6 +713,112 @@ This document provides the REST API specification for all concepts in the HobbyS
 
 ---
 
+## PasswordAuthentication Concept
+
+**Purpose:** Associate usernames and passwords with user identities for authentication purposes.
+
+### POST /api/PasswordAuthentication/register
+
+**Description:** Registers a new user with a username and password.
+
+**Requirements:**
+- No user with the given username already exists
+
+**Effects:**
+- Creates a new user with the specified username and password
+- Returns the created user ID
+
+**Request Body:**
+```json
+{
+  "username": "string",
+  "password": "string"
+}
+```
+
+**Success Response Body:**
+```json
+{
+  "user": "string"
+}
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
+
+---
+
+### POST /api/PasswordAuthentication/authenticate
+
+**Description:** Authenticates a user with their username and password.
+
+**Requirements:**
+- A user with the given username exists
+- The password matches the stored password for that user
+
+**Effects:**
+- Returns the user ID if authentication is successful
+
+**Request Body:**
+```json
+{
+  "username": "string",
+  "password": "string"
+}
+```
+
+**Success Response Body:**
+```json
+{
+  "user": "string"
+}
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
+
+---
+
+### POST /api/PasswordAuthentication/deleteUser
+
+**Description:** Permanently deletes a user and their stored credentials.
+
+**Requirements:**
+- A user with the given user ID exists
+
+**Effects:**
+- Permanently deletes the user and their credentials from the database
+- Prevents future authentication with those credentials
+
+**Request Body:**
+```json
+{
+  "user": "string"
+}
+```
+
+**Success Response Body:**
+```json
+{}
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
+
+---
+
 ## QuizMatchmaker Concept
 
 **Purpose:** To match users with suitable hobbies based on their responses to a predefined, fixed quiz.

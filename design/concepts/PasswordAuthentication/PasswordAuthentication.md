@@ -30,6 +30,14 @@
     *   `authenticate(username: String, password: String): (error: String)`
         *   **requires**: A `User` with the given `username` does NOT exist OR the `password` does NOT match the stored `password`.
         *   **effects**: Returns an error message indicating invalid credentials (e.g., "Invalid username or password").
+    
+    *   `deleteUser(user: User): ()`
+        *   **requires**: A `User` with the given `user` ID exists.
+        *   **effects**: Permanently deletes the `User` and their stored credentials from the database.
+    
+    *   `deleteUser(user: User): (error: String)`
+        *   **requires**: A `User` with the given `user` ID does NOT exist.
+        *   **effects**: Returns an error message indicating the user was not found.
 
 # file: src/PasswordAuthentication/PasswordAuthenticationConcept.ts
 
@@ -37,7 +45,7 @@
 
 ```typescript
 import { Collection, Db } from "mongodb";
-import { ID } from "@utils/types.ts";
+import { Empty, ID } from "@utils/types.ts";
 import { freshID } from "@utils/database.ts";
 
 // Collection prefix to ensure namespace separation
@@ -126,6 +134,25 @@ export default class PasswordAuthenticationConcept {
 
     // user successfully logged in
     return { user: userDoc._id };
+  }
+
+  /**
+   * deleteUser (user: User)
+   *
+   * @requires a User with the given `user` ID exists
+   *
+   * @effects permanently deletes the User and their stored credentials
+   */
+  async deleteUser(
+    { user }: { user: User },
+  ): Promise<Empty | { error: string }> {
+    const result = await this.users.deleteOne({ _id: user });
+
+    if (result.deletedCount === 0) {
+      return { error: `User ${user} not found.` };
+    }
+
+    return {};
   }
 }
 ```

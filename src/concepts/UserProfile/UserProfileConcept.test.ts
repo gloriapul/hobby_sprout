@@ -126,7 +126,7 @@ Deno.test("Action: setHobby/closeHobby manages hobby assignments and status", as
   }
 });
 
-Deno.test("Action: createProfile/deleteProfile enforces profile uniqueness and lifecycle", async () => {
+Deno.test("Action: createProfile/closeProfile enforces profile uniqueness and lifecycle", async () => {
   const [db, client] = await testDb();
   const profileConcept = new UserProfileConcept(db);
 
@@ -159,7 +159,7 @@ Deno.test("Action: createProfile/deleteProfile enforces profile uniqueness and l
 
     console.log("3. Deleting the user profile");
 
-    const deleteResult = await profileConcept.deleteProfile({ user: userA });
+    const deleteResult = await profileConcept.closeProfile({ user: userA });
     assertEquals(
       "error" in deleteResult,
       false,
@@ -184,7 +184,7 @@ Deno.test("Action: createProfile/deleteProfile enforces profile uniqueness and l
   }
 });
 
-Deno.test("Action: deleteProfile permanently removes profile and associated data", async () => {
+Deno.test("Action: closeProfile permanently removes profile and associated data", async () => {
   const [db, client] = await testDb();
   const profileConcept = new UserProfileConcept(db);
 
@@ -206,7 +206,7 @@ Deno.test("Action: deleteProfile permanently removes profile and associated data
     }
 
     console.log("3. Deleting the user profile");
-    const deleteResult = await profileConcept.deleteProfile({ user: userA });
+    const deleteResult = await profileConcept.closeProfile({ user: userA });
     assertEquals(
       "error" in deleteResult,
       false,
@@ -230,7 +230,7 @@ Deno.test("Action: deleteProfile permanently removes profile and associated data
     console.log(`   ✓ Profile and all associated data permanently removed`);
 
     console.log("5. Attempting to delete non-existent profile");
-    const deleteAgain = await profileConcept.deleteProfile({ user: userA });
+    const deleteAgain = await profileConcept.closeProfile({ user: userA });
     assertEquals(
       "error" in deleteAgain,
       true,
@@ -243,7 +243,7 @@ Deno.test("Action: deleteProfile permanently removes profile and associated data
     }
 
     console.log(
-      "6. Action requirements satisfied: deleteProfile removes all user data permanently",
+      "6. Action requirements satisfied: closeProfile removes all user data permanently",
     );
   } finally {
     await client.close();
