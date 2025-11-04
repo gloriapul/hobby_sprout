@@ -5,7 +5,7 @@
  */
 
 import { QuizMatchmaker, Requesting, Sessioning } from "@concepts";
-import { actions, Sync } from "@engine";
+import { actions, Frames, Sync } from "@engine";
 
 //-- Quiz & Matching --//
 
@@ -60,7 +60,7 @@ export const DeleteHobbyMatchesResponse: Sync = ({ request, msg }) => ({
 //-- Query Syncs --//
 
 export const GetAllHobbyMatchesRequest: Sync = (
-  { request, session, user, match, matches },
+  { request, session, user, id, hobby, matchedAt, matches },
 ) => ({
   when: actions([
     Requesting.request,
@@ -68,29 +68,17 @@ export const GetAllHobbyMatchesRequest: Sync = (
     { request },
   ]),
   where: async (frames) => {
+    const originalFrame = frames[0];
     frames = await frames.query(Sessioning._getUser, { session }, { user });
     frames = await frames.query(QuizMatchmaker._getAllHobbyMatches, { user }, {
-      match,
+      id,
+      hobby,
+      matchedAt,
     });
-    return frames.collectAs([match], matches);
+    if (frames.length === 0) {
+      return new Frames({ ...originalFrame, [matches]: [] });
+    }
+    return frames.collectAs([id, hobby, matchedAt], matches);
   },
   then: actions([Requesting.respond, { request, matches }]),
-});
-
-export const GetMatchedHobbyRequest: Sync = (
-  { request, session, matchId, user, hobby, match },
-) => ({
-  when: actions([
-    Requesting.request,
-    { path: "/QuizMatchmaker/_getMatchedHobby", session, matchId },
-    { request },
-  ]),
-  where: async (frames) => {
-    frames = await frames.query(Sessioning._getUser, { session }, { user });
-    frames = await frames.query(QuizMatchmaker._getMatchedHobby, { user }, {
-      hobby,
-    });
-    return frames.collectAs([hobby], match);
-  },
-  then: actions([Requesting.respond, { request, match }]),
 });

@@ -5,7 +5,7 @@
  */
 
 import { Requesting, Sessioning, UserProfile } from "@concepts";
-import { actions, Sync } from "@engine";
+import { actions, Frames, Sync } from "@engine";
 
 //-- Profile Management --//
 
@@ -19,17 +19,23 @@ export const CreateProfileRequest: Sync = (
   ]),
   where: async (frames) =>
     await frames.query(Sessioning._getUser, { session }, { user }),
-  then: actions([UserProfile.createProfile, { user }, {
-    msg,
-  }]),
+  then: actions([UserProfile.createProfile, { user }, { msg }]),
 });
 
-export const CreateProfileResponse: Sync = ({ request, msg }) => ({
+export const CreateProfileResponse: Sync = ({ request }) => ({
   when: actions(
     [Requesting.request, { path: "/UserProfile/createProfile" }, { request }],
-    [UserProfile.createProfile, {}, { msg }],
+    [UserProfile.createProfile, {}, {}],
   ),
-  then: actions([Requesting.respond, { request, msg }]),
+  then: actions([Requesting.respond, { request, msg: {} }]),
+});
+
+export const CreateProfileResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/UserProfile/createProfile" }, { request }],
+    [UserProfile.createProfile, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, msg: { error } }]),
 });
 
 export const SetNameRequest: Sync = (
@@ -45,33 +51,49 @@ export const SetNameRequest: Sync = (
   then: actions([UserProfile.setName, { user, displayname }, { msg }]),
 });
 
-export const SetNameResponse: Sync = ({ request, msg }) => ({
+export const SetNameResponse: Sync = ({ request }) => ({
   when: actions(
     [Requesting.request, { path: "/UserProfile/setName" }, { request }],
-    [UserProfile.setName, {}, { msg }],
+    [UserProfile.setName, {}, {}],
   ),
-  then: actions([Requesting.respond, { request, msg }]),
+  then: actions([Requesting.respond, { request, msg: {} }]),
+});
+
+export const SetNameResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/UserProfile/setName" }, { request }],
+    [UserProfile.setName, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, msg: { error } }]),
 });
 
 export const SetImageRequest: Sync = (
-  { request, session, profile, user, msg },
+  { request, session, image, user, msg },
 ) => ({
   when: actions([
     Requesting.request,
-    { path: "/UserProfile/setImage", session, profile },
+    { path: "/UserProfile/setImage", session, image },
     { request },
   ]),
   where: async (frames) =>
     await frames.query(Sessioning._getUser, { session }, { user }),
-  then: actions([UserProfile.setImage, { user, profile }, { msg }]),
+  then: actions([UserProfile.setImage, { user, image }, { msg }]),
 });
 
-export const SetImageResponse: Sync = ({ request, msg }) => ({
+export const SetImageResponse: Sync = ({ request }) => ({
   when: actions(
     [Requesting.request, { path: "/UserProfile/setImage" }, { request }],
-    [UserProfile.setImage, {}, { msg }],
+    [UserProfile.setImage, {}, {}],
   ),
-  then: actions([Requesting.respond, { request, msg }]),
+  then: actions([Requesting.respond, { request, msg: {} }]),
+});
+
+export const SetImageResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/UserProfile/setImage" }, { request }],
+    [UserProfile.setImage, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, msg: { error } }]),
 });
 
 export const CloseProfileRequest: Sync = ({ request, session, user, msg }) => ({
@@ -85,12 +107,20 @@ export const CloseProfileRequest: Sync = ({ request, session, user, msg }) => ({
   then: actions([UserProfile.closeProfile, { user }, { msg }]),
 });
 
-export const CloseProfileResponse: Sync = ({ request, msg }) => ({
+export const CloseProfileResponse: Sync = ({ request }) => ({
   when: actions(
     [Requesting.request, { path: "/UserProfile/closeProfile" }, { request }],
-    [UserProfile.closeProfile, {}, { msg }],
+    [UserProfile.closeProfile, {}, {}],
   ),
-  then: actions([Requesting.respond, { request, msg }]),
+  then: actions([Requesting.respond, { request, msg: {} }]),
+});
+
+export const CloseProfileResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/UserProfile/closeProfile" }, { request }],
+    [UserProfile.closeProfile, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, msg: { error } }]),
 });
 
 //-- Hobby Management --//
@@ -108,12 +138,20 @@ export const SetHobbyRequest: Sync = (
   then: actions([UserProfile.setHobby, { user, hobby }, { msg }]),
 });
 
-export const SetHobbyResponse: Sync = ({ request, msg }) => ({
+export const SetHobbyResponse: Sync = ({ request }) => ({
   when: actions(
     [Requesting.request, { path: "/UserProfile/setHobby" }, { request }],
-    [UserProfile.setHobby, {}, { msg }],
+    [UserProfile.setHobby, {}, {}],
   ),
-  then: actions([Requesting.respond, { request, msg }]),
+  then: actions([Requesting.respond, { request, msg: {} }]),
+});
+
+export const SetHobbyResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/UserProfile/setHobby" }, { request }],
+    [UserProfile.setHobby, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, msg: { error } }]),
 });
 
 export const CloseHobbyRequest: Sync = (
@@ -129,18 +167,26 @@ export const CloseHobbyRequest: Sync = (
   then: actions([UserProfile.closeHobby, { user, hobby }, { msg }]),
 });
 
-export const CloseHobbyResponse: Sync = ({ request, msg }) => ({
+export const CloseHobbyResponse: Sync = ({ request }) => ({
   when: actions(
     [Requesting.request, { path: "/UserProfile/closeHobby" }, { request }],
-    [UserProfile.closeHobby, {}, { msg }],
+    [UserProfile.closeHobby, {}, {}],
   ),
-  then: actions([Requesting.respond, { request, msg }]),
+  then: actions([Requesting.respond, { request, msg: {} }]),
+});
+
+export const CloseHobbyResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/UserProfile/closeHobby" }, { request }],
+    [UserProfile.closeHobby, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, msg: { error } }]),
 });
 
 //-- Query Syncs --//
 
 export const GetUserProfileRequest: Sync = (
-  { request, session, user, profile, userProfile },
+  { request, session, user, userProfile },
 ) => ({
   when: actions([
     Requesting.request,
@@ -149,16 +195,19 @@ export const GetUserProfileRequest: Sync = (
   ]),
   where: async (frames) => {
     frames = await frames.query(Sessioning._getUser, { session }, { user });
-    frames = await frames.query(UserProfile._getUserProfile, { user }, {
-      profile,
-    });
-    return frames.collectAs([profile], userProfile);
+    frames = await frames.query(
+      UserProfile._getUserProfile,
+      { user },
+      { userProfile },
+    );
+    // Wrap userProfile in an array for the response
+    return frames.map(($) => ({ ...$, [userProfile]: [$[userProfile]] }));
   },
   then: actions([Requesting.respond, { request, userProfile }]),
 });
 
 export const GetUserHobbiesRequest: Sync = (
-  { request, session, user, hobby, hobbies },
+  { request, session, user, hobby, active, hobbies },
 ) => ({
   when: actions([
     Requesting.request,
@@ -166,11 +215,17 @@ export const GetUserHobbiesRequest: Sync = (
     { request },
   ]),
   where: async (frames) => {
+    const originalFrame = frames[0];
     frames = await frames.query(Sessioning._getUser, { session }, { user });
-    frames = await frames.query(UserProfile._getUserHobbies, { user }, {
-      hobby,
-    });
-    return frames.collectAs([hobby], hobbies);
+    frames = await frames.query(
+      UserProfile._getUserHobbies,
+      { user },
+      { hobby, active },
+    );
+    if (frames.length === 0) {
+      return new Frames({ ...originalFrame, [hobbies]: [] });
+    }
+    return frames.collectAs([hobby, active], hobbies);
   },
   then: actions([Requesting.respond, { request, hobbies }]),
 });
@@ -184,10 +239,16 @@ export const GetActiveHobbiesRequest: Sync = (
     { request },
   ]),
   where: async (frames) => {
+    const originalFrame = frames[0];
     frames = await frames.query(Sessioning._getUser, { session }, { user });
-    frames = await frames.query(UserProfile._getActiveHobbies, { user }, {
-      hobby,
-    });
+    frames = await frames.query(
+      UserProfile._getActiveHobbies,
+      { user },
+      { hobby },
+    );
+    if (frames.length === 0) {
+      return new Frames({ ...originalFrame, [hobbies]: [] });
+    }
     return frames.collectAs([hobby], hobbies);
   },
   then: actions([Requesting.respond, { request, hobbies }]),

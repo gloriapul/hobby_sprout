@@ -243,21 +243,21 @@ export default class UserProfileConcept {
   }
 
   /**
-   * _getUserProfile (user: User): (profile: UserProfileDoc)
+   * _getUserProfile (user: User): (userProfile: UserProfileDoc)
    *
    * @requires user to exist in the set of users.
    *
    * @effects returns the full profile data (display name, profile image)
-   *             for the specified user. Returns an array containing one profile document.
+   *             for the specified user. Returns an array with objects containing userProfile property.
    */
   async _getUserProfile(
     { user }: { user: User },
-  ): Promise<UserProfileDoc[]> {
+  ): Promise<{ userProfile: UserProfileDoc }[]> {
     const profile = await this.userProfiles.findOne({ _id: user });
     if (!profile) {
       return [];
     }
-    return [profile];
+    return [{ userProfile: profile }];
   }
 
   /**

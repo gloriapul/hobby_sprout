@@ -3,11 +3,15 @@ import { walk } from "@std/fs";
 import { toFileUrl } from "@std/path/to-file-url";
 import { getDb } from "@utils/database.ts";
 import { parseArgs } from "@std/cli/parse-args";
+import { load } from "@std/dotenv";
 
 /**
  * Main server function to initialize DB, load concepts, and start the server.
  */
 async function main() {
+  // Load environment variables from .env file
+  await load({ export: true });
+
   // CORS middleware for all requests
   // Parse command-line arguments for port and base URL
   const flags = parseArgs(Deno.args, {
@@ -76,7 +80,9 @@ async function main() {
 
       // Pass Gemini API key to QuizMatchmakerConcept, others just get db
       let instance;
-      if (conceptName === "QuizMatchmaker" || conceptName === "MilestoneTracker") {
+      if (
+        conceptName === "QuizMatchmaker" || conceptName === "MilestoneTracker"
+      ) {
         const apiKey = Deno.env.get("GEMINI_API_KEY");
         instance = new ConceptClass(db, apiKey);
       } else {
