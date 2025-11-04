@@ -34,8 +34,16 @@ export const CreateGoalResponse: Sync = ({ request, goal }) => ({
   then: actions([Requesting.respond, { request, goal }]),
 });
 
+export const CreateGoalResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/MilestoneTracker/createGoal" }, { request }],
+    [MilestoneTracker.createGoal, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
 export const CloseGoalRequest: Sync = (
-  { request, session, goalId, user, msg },
+  { request, session, goalId, user },
 ) => ({
   when: actions([
     Requesting.request,
@@ -44,15 +52,23 @@ export const CloseGoalRequest: Sync = (
   ]),
   where: async (frames) =>
     await frames.query(Sessioning._getUser, { session }, { user }),
-  then: actions([MilestoneTracker.closeGoal, { user, goalId }, { msg }]),
+  then: actions([MilestoneTracker.closeGoal, { user, goalId }, {}]),
 });
 
-export const CloseGoalResponse: Sync = ({ request, msg }) => ({
+export const CloseGoalResponse: Sync = ({ request }) => ({
   when: actions(
     [Requesting.request, { path: "/MilestoneTracker/closeGoal" }, { request }],
-    [MilestoneTracker.closeGoal, {}, { msg }],
+    [MilestoneTracker.closeGoal, {}, {}],
   ),
-  then: actions([Requesting.respond, { request, msg }]),
+  then: actions([Requesting.respond, { request, msg: {} }]),
+});
+
+export const CloseGoalResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/MilestoneTracker/closeGoal" }, { request }],
+    [MilestoneTracker.closeGoal, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
 });
 
 //-- Step Management --//
@@ -67,7 +83,9 @@ export const GenerateStepsRequest: Sync = (
   ]),
   where: async (frames) =>
     await frames.query(Sessioning._getUser, { session }, { user }),
-  then: actions([MilestoneTracker.generateSteps, { user, goalId }, { steps }]),
+  then: actions([MilestoneTracker.generateSteps, { user, goal: goalId }, {
+    steps,
+  }]),
 });
 
 export const GenerateStepsResponse: Sync = ({ request, steps }) => ({
@@ -80,6 +98,16 @@ export const GenerateStepsResponse: Sync = ({ request, steps }) => ({
   then: actions([Requesting.respond, { request, steps }]),
 });
 
+export const GenerateStepsResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/MilestoneTracker/generateSteps" }, {
+      request,
+    }],
+    [MilestoneTracker.generateSteps, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
 export const RegenerateStepsRequest: Sync = (
   { request, session, goalId, user, steps },
 ) => ({
@@ -90,7 +118,7 @@ export const RegenerateStepsRequest: Sync = (
   ]),
   where: async (frames) =>
     await frames.query(Sessioning._getUser, { session }, { user }),
-  then: actions([MilestoneTracker.regenerateSteps, { user, goalId }, {
+  then: actions([MilestoneTracker.regenerateSteps, { user, goal: goalId }, {
     steps,
   }]),
 });
@@ -103,6 +131,16 @@ export const RegenerateStepsResponse: Sync = ({ request, steps }) => ({
     [MilestoneTracker.regenerateSteps, {}, { steps }],
   ),
   then: actions([Requesting.respond, { request, steps }]),
+});
+
+export const RegenerateStepsResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/MilestoneTracker/regenerateSteps" }, {
+      request,
+    }],
+    [MilestoneTracker.regenerateSteps, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
 });
 
 export const AddStepRequest: Sync = (
@@ -135,7 +173,7 @@ export const AddStepResponse: Sync = ({ request, step }) => ({
 });
 
 export const CompleteStepRequest: Sync = (
-  { request, session, stepId, user, msg },
+  { request, session, stepId, user },
 ) => ({
   when: actions([
     Requesting.request,
@@ -144,21 +182,31 @@ export const CompleteStepRequest: Sync = (
   ]),
   where: async (frames) =>
     await frames.query(Sessioning._getUser, { session }, { user }),
-  then: actions([MilestoneTracker.completeStep, { user, stepId }, { msg }]),
+  then: actions([MilestoneTracker.completeStep, { user, stepId }, {}]),
 });
 
-export const CompleteStepResponse: Sync = ({ request, msg }) => ({
+export const CompleteStepResponse: Sync = ({ request }) => ({
   when: actions(
     [Requesting.request, { path: "/MilestoneTracker/completeStep" }, {
       request,
     }],
-    [MilestoneTracker.completeStep, {}, { msg }],
+    [MilestoneTracker.completeStep, {}, {}],
   ),
-  then: actions([Requesting.respond, { request, msg }]),
+  then: actions([Requesting.respond, { request, msg: {} }]),
+});
+
+export const CompleteStepResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/MilestoneTracker/completeStep" }, {
+      request,
+    }],
+    [MilestoneTracker.completeStep, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
 });
 
 export const RemoveStepRequest: Sync = (
-  { request, session, stepId, user, msg },
+  { request, session, stepId, user },
 ) => ({
   when: actions([
     Requesting.request,
@@ -167,15 +215,23 @@ export const RemoveStepRequest: Sync = (
   ]),
   where: async (frames) =>
     await frames.query(Sessioning._getUser, { session }, { user }),
-  then: actions([MilestoneTracker.removeStep, { user, stepId }, { msg }]),
+  then: actions([MilestoneTracker.removeStep, { user, stepId }, {}]),
 });
 
-export const RemoveStepResponse: Sync = ({ request, msg }) => ({
+export const RemoveStepResponse: Sync = ({ request }) => ({
   when: actions(
     [Requesting.request, { path: "/MilestoneTracker/removeStep" }, { request }],
-    [MilestoneTracker.removeStep, {}, { msg }],
+    [MilestoneTracker.removeStep, {}, {}],
   ),
-  then: actions([Requesting.respond, { request, msg }]),
+  then: actions([Requesting.respond, { request, msg: {} }]),
+});
+
+export const RemoveStepResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/MilestoneTracker/removeStep" }, { request }],
+    [MilestoneTracker.removeStep, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
 });
 
 //-- Query Syncs --//
@@ -184,6 +240,7 @@ export const GetGoalRequest: Sync = (
   {
     request,
     session,
+    hobby,
     user,
     goalId,
     goalDescription,
@@ -194,7 +251,7 @@ export const GetGoalRequest: Sync = (
 ) => ({
   when: actions([
     Requesting.request,
-    { path: "/MilestoneTracker/_getGoal", session },
+    { path: "/MilestoneTracker/_getGoal", session, hobby },
     { request },
   ]),
   where: async (frames) => {
@@ -202,7 +259,7 @@ export const GetGoalRequest: Sync = (
     frames = await frames.query(Sessioning._getUser, { session }, { user });
     frames = await frames.query(
       MilestoneTracker._getGoal,
-      { user },
+      { user, hobby },
       {
         id: goalId,
         description: goalDescription,
@@ -225,6 +282,7 @@ export const GetAllGoalsRequest: Sync = (
   {
     request,
     session,
+    hobby,
     user,
     goalId,
     goalDescription,
@@ -235,7 +293,7 @@ export const GetAllGoalsRequest: Sync = (
 ) => ({
   when: actions([
     Requesting.request,
-    { path: "/MilestoneTracker/_getAllGoals", session },
+    { path: "/MilestoneTracker/_getAllGoals", session, hobby },
     { request },
   ]),
   where: async (frames) => {
@@ -243,7 +301,7 @@ export const GetAllGoalsRequest: Sync = (
     frames = await frames.query(Sessioning._getUser, { session }, { user });
     frames = await frames.query(
       MilestoneTracker._getAllGoals,
-      { user },
+      { user, hobby },
       {
         id: goalId,
         description: goalDescription,

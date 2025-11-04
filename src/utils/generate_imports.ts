@@ -84,7 +84,8 @@ import { SyncConcept } from "@engine";
 export const Engine = new SyncConcept();\n`;
 
   const dbImportFunc = isTest ? "testDb" : "getDb";
-  const dbImport = `import { ${dbImportFunc} } from "@utils/database.ts";\n`;
+  const dbImport = `import { ${dbImportFunc} } from "@utils/database.ts";
+import { load } from "@std/dotenv";\n`;
 
   const conceptClassImports = concepts
     .map((c) => `import ${c.name}Concept from "${c.importPath}";`)
@@ -97,15 +98,28 @@ export const Engine = new SyncConcept();\n`;
     )
     .join("\n");
 
+  const envLoading = `
+// Load environment variables from .env file
+await load({ export: true });
+`;
+
   const dbInitialization = `
 // Initialize the database connection
 export const [db, client] = await ${dbImportFunc}();
+
+// Get API key for LLM-enabled concepts
+const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 `;
 
+  // Concepts that require the LLM API key
+  const llmEnabledConcepts = ["MilestoneTracker", "QuizMatchmaker"];
+
   const instantiations = concepts
-    .map((c) =>
-      `export const ${c.name} = Engine.instrumentConcept(new ${c.name}Concept(db));`
-    )
+    .map((c) => {
+      const needsApiKey = llmEnabledConcepts.includes(c.name);
+      const args = needsApiKey ? "db, GEMINI_API_KEY" : "db";
+      return `export const ${c.name} = Engine.instrumentConcept(new ${c.name}Concept(${args}));`;
+    })
     .join("\n");
 
   return [
@@ -114,6 +128,7 @@ export const [db, client] = await ${dbImportFunc}();
     conceptClassImports,
     "", // newline
     conceptTypeExports,
+    envLoading,
     dbInitialization,
     instantiations,
     "", // trailing newline

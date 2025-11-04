@@ -231,7 +231,7 @@ export const GetUserHobbiesRequest: Sync = (
 });
 
 export const GetActiveHobbiesRequest: Sync = (
-  { request, session, user, hobby, hobbies },
+  { request, session, user, hobby, active, hobbies },
 ) => ({
   when: actions([
     Requesting.request,
@@ -244,12 +244,12 @@ export const GetActiveHobbiesRequest: Sync = (
     frames = await frames.query(
       UserProfile._getActiveHobbies,
       { user },
-      { hobby },
+      { hobby, active },
     );
     if (frames.length === 0) {
       return new Frames({ ...originalFrame, [hobbies]: [] });
     }
-    return frames.collectAs([hobby], hobbies);
+    return frames.collectAs([hobby, active], hobbies);
   },
   then: actions([Requesting.respond, { request, hobbies }]),
 });

@@ -281,16 +281,16 @@ export default class UserProfileConcept {
   }
 
   /**
-   * _getActiveHobbies (user: User): (hobby: string)
+   * _getActiveHobbies (user: User): (hobby: string, active: boolean)
    *
    * @requires user to exist in the set of users.
    *
    * @effects returns only the names of all active hobbies for the specified user.
-   *             Returns an array of dictionaries, each with a 'hobby' field.
+   *             Returns an array of dictionaries, each with a 'hobby' and 'active' field.
    */
   async _getActiveHobbies(
     { user }: { user: User },
-  ): Promise<{ hobby: string }[]> {
+  ): Promise<{ hobby: string; active: boolean }[]> {
     const userProfile = await this.userProfiles.findOne({ _id: user });
     if (!userProfile) {
       return [];
@@ -299,7 +299,10 @@ export default class UserProfileConcept {
       userId: user,
       active: true,
     }).toArray();
-    // map to the specified return structure
-    return activeHobbies.map((doc) => ({ hobby: doc.hobby }));
+    // map to the specified return structure with active field
+    return activeHobbies.map((doc) => ({
+      hobby: doc.hobby,
+      active: doc.active,
+    }));
   }
 }

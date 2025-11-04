@@ -24,18 +24,30 @@ export const GenerateHobbyMatchRequest: Sync = (
   }]),
 });
 
-export const GenerateHobbyMatchResponse: Sync = ({ request, hobby }) => ({
+export const GenerateHobbyMatchResponse: Sync = (
+  { request, matchedHobby },
+) => ({
   when: actions(
     [Requesting.request, { path: "/QuizMatchmaker/generateHobbyMatch" }, {
       request,
     }],
-    [QuizMatchmaker.generateHobbyMatch, {}, { hobby }],
+    [QuizMatchmaker.generateHobbyMatch, {}, { matchedHobby }],
   ),
-  then: actions([Requesting.respond, { request, hobby }]),
+  then: actions([Requesting.respond, { request, matchedHobby }]),
+});
+
+export const GenerateHobbyMatchResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/QuizMatchmaker/generateHobbyMatch" }, {
+      request,
+    }],
+    [QuizMatchmaker.generateHobbyMatch, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
 });
 
 export const DeleteHobbyMatchesRequest: Sync = (
-  { request, session, user, msg },
+  { request, session, user },
 ) => ({
   when: actions([
     Requesting.request,
@@ -44,17 +56,27 @@ export const DeleteHobbyMatchesRequest: Sync = (
   ]),
   where: async (frames) =>
     await frames.query(Sessioning._getUser, { session }, { user }),
-  then: actions([QuizMatchmaker.deleteHobbyMatches, { user }, { msg }]),
+  then: actions([QuizMatchmaker.deleteHobbyMatches, { user }]),
 });
 
-export const DeleteHobbyMatchesResponse: Sync = ({ request, msg }) => ({
+export const DeleteHobbyMatchesResponse: Sync = ({ request }) => ({
   when: actions(
     [Requesting.request, { path: "/QuizMatchmaker/deleteHobbyMatches" }, {
       request,
     }],
-    [QuizMatchmaker.deleteHobbyMatches, {}, { msg }],
+    [QuizMatchmaker.deleteHobbyMatches, {}, {}],
   ),
-  then: actions([Requesting.respond, { request, msg }]),
+  then: actions([Requesting.respond, { request }]),
+});
+
+export const DeleteHobbyMatchesResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/QuizMatchmaker/deleteHobbyMatches" }, {
+      request,
+    }],
+    [QuizMatchmaker.deleteHobbyMatches, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
 });
 
 //-- Query Syncs --//
