@@ -498,6 +498,33 @@ export default class MilestoneTrackerConcept {
   }
 
   /**
+   * getGoals (user: User): (goal: {id: Goal, description: string, hobby: string, isActive: boolean})[]
+   *
+   * @requires `user` exists.
+   *
+   * @effects returns an array containing all active goals for the `user` without hobby filtering, including its `id`, `description`, `hobby`, and `isActive` status.
+   */
+  async _getGoals({
+    user,
+  }: {
+    user: User;
+  }): Promise<
+    { id: Goal; description: string; hobby: string; isActive: boolean }[]
+  > {
+    const query: { user: User; isActive: boolean } = {
+      user,
+      isActive: true,
+    };
+    const goalDocs = await this.goals.find(query).toArray();
+    return goalDocs.map((goalDoc) => ({
+      id: goalDoc._id,
+      description: goalDoc.description,
+      hobby: goalDoc.hobby,
+      isActive: goalDoc.isActive,
+    }));
+  }
+
+  /**
    * getAllGoals (user: User, hobby?: string): (goal: {id: Goal, description: string, hobby: string, isActive: boolean})[]
    *
    * @requires `user` exists.

@@ -278,6 +278,47 @@ export const GetGoalRequest: Sync = (
   then: actions([Requesting.respond, { request, goals }]),
 });
 
+export const GetGoalsRequest: Sync = (
+  {
+    request,
+    session,
+    user,
+    goalId,
+    goalDescription,
+    goalHobby,
+    goalIsActive,
+    goals,
+  },
+) => ({
+  when: actions([
+    Requesting.request,
+    { path: "/MilestoneTracker/_getGoals", session },
+    { request },
+  ]),
+  where: async (frames) => {
+    const originalFrame = frames[0];
+    frames = await frames.query(Sessioning._getUser, { session }, { user });
+    frames = await frames.query(
+      MilestoneTracker._getGoals,
+      { user },
+      {
+        id: goalId,
+        description: goalDescription,
+        hobby: goalHobby,
+        isActive: goalIsActive,
+      },
+    );
+    if (frames.length === 0) {
+      return new Frames({ ...originalFrame, [goals]: [] });
+    }
+    return frames.collectAs(
+      [goalId, goalDescription, goalHobby, goalIsActive],
+      goals,
+    );
+  },
+  then: actions([Requesting.respond, { request, goals }]),
+});
+
 export const GetAllGoalsRequest: Sync = (
   {
     request,
