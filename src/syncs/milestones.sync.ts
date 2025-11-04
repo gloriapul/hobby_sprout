@@ -10,28 +10,49 @@ import { actions, Frames, Sync } from "@engine";
 //-- Goal Management --//
 
 export const CreateGoalRequest: Sync = (
-  { request, session, hobby, description, user, goal },
-) => ({
-  when: actions([
-    Requesting.request,
-    { path: "/MilestoneTracker/createGoal", session, hobby, description },
-    { request },
-  ]),
-  where: async (frames) =>
-    await frames.query(Sessioning._getUser, { session }, { user }),
-  then: actions([
-    MilestoneTracker.createGoal,
-    { user, hobby, description },
-    { goal },
-  ]),
-});
+  { request, session, hobby, description, user, goalId },
+) => {
+  console.log("[CreateGoalRequest] payload:", {
+    request,
+    session,
+    hobby,
+    description,
+    user,
+    goalId,
+  });
+  return ({
+    when: actions([
+      Requesting.request,
+      { path: "/MilestoneTracker/createGoal", session, hobby, description },
+      { request },
+    ]),
+    where: async (frames) => {
+      // Get user from session, but also pass hobby and description through
+      const userFrames = await frames.query(Sessioning._getUser, { session }, {
+        user,
+      });
+      // For each frame, add hobby and description from the original input
+      return userFrames.map((frame) => ({
+        ...frame,
+        hobby,
+        description,
+      }));
+    },
+    then: actions([
+      MilestoneTracker.createGoal,
+      { user, hobby, description },
+      // MilestoneTracker.createGoal must return { goalId }
+      { goalId },
+    ]),
+  });
+};
 
-export const CreateGoalResponse: Sync = ({ request, goal }) => ({
+export const CreateGoalResponse: Sync = ({ request, goalId }) => ({
   when: actions(
     [Requesting.request, { path: "/MilestoneTracker/createGoal" }, { request }],
-    [MilestoneTracker.createGoal, {}, { goal }],
+    [MilestoneTracker.createGoal, {}, { goalId }],
   ),
-  then: actions([Requesting.respond, { request, goal }]),
+  then: actions([Requesting.respond, { request, goalId }]),
 });
 
 export const CreateGoalResponseError: Sync = ({ request, error }) => ({
@@ -52,7 +73,7 @@ export const CloseGoalRequest: Sync = (
   ]),
   where: async (frames) =>
     await frames.query(Sessioning._getUser, { session }, { user }),
-  then: actions([MilestoneTracker.closeGoal, { user, goalId }, {}]),
+  then: actions([MilestoneTracker.closeGoal, { goalId }, {}]),
 });
 
 export const CloseGoalResponse: Sync = ({ request }) => ({
@@ -145,24 +166,34 @@ export const RegenerateStepsResponseError: Sync = ({ request, error }) => ({
 
 export const AddStepRequest: Sync = (
   { request, session, goalId, description, user, step },
-) => ({
-  when: actions([
-    Requesting.request,
-    {
-      path: "/MilestoneTracker/addStep",
-      session,
-      goalId,
-      description,
-    },
-    { request },
-  ]),
-  where: async (frames) =>
-    await frames.query(Sessioning._getUser, { session }, { user }),
-  then: actions([MilestoneTracker.addStep, {
-    goal: goalId,
+) => {
+  console.log("[AddStepRequest] payload:", {
+    request,
+    session,
+    goalId,
     description,
-  }, { step }]),
-});
+    user,
+    step,
+  });
+  return ({
+    when: actions([
+      Requesting.request,
+      {
+        path: "/MilestoneTracker/addStep",
+        session,
+        goalId,
+        description,
+      },
+      { request },
+    ]),
+    where: async (frames) =>
+      await frames.query(Sessioning._getUser, { session }, { user }),
+    then: actions([MilestoneTracker.addStep, {
+      goal: goalId,
+      description,
+    }, { step }]),
+  });
+};
 
 export const AddStepResponse: Sync = ({ request, step }) => ({
   when: actions(
@@ -182,7 +213,7 @@ export const CompleteStepRequest: Sync = (
   ]),
   where: async (frames) =>
     await frames.query(Sessioning._getUser, { session }, { user }),
-  then: actions([MilestoneTracker.completeStep, { user, stepId }, {}]),
+  then: actions([MilestoneTracker.completeStep, { user, step: stepId }, {}]),
 });
 
 export const CompleteStepResponse: Sync = ({ request }) => ({
@@ -207,16 +238,24 @@ export const CompleteStepResponseError: Sync = ({ request, error }) => ({
 
 export const RemoveStepRequest: Sync = (
   { request, session, stepId, user },
-) => ({
-  when: actions([
-    Requesting.request,
-    { path: "/MilestoneTracker/removeStep", session, stepId },
-    { request },
-  ]),
-  where: async (frames) =>
-    await frames.query(Sessioning._getUser, { session }, { user }),
-  then: actions([MilestoneTracker.removeStep, { user, stepId }, {}]),
-});
+) => {
+  console.log("[RemoveStepRequest] payload:", {
+    request,
+    session,
+    stepId,
+    user,
+  });
+  return ({
+    when: actions([
+      Requesting.request,
+      { path: "/MilestoneTracker/removeStep", session, stepId },
+      { request },
+    ]),
+    where: async (frames) =>
+      await frames.query(Sessioning._getUser, { session }, { user }),
+    then: actions([MilestoneTracker.removeStep, { user, stepId }, {}]),
+  });
+};
 
 export const RemoveStepResponse: Sync = ({ request }) => ({
   when: actions(
@@ -301,48 +340,6 @@ export const GetGoalsRequest: Sync = (
     frames = await frames.query(
       MilestoneTracker._getGoals,
       { user },
-      {
-        id: goalId,
-        description: goalDescription,
-        hobby: goalHobby,
-        isActive: goalIsActive,
-      },
-    );
-    if (frames.length === 0) {
-      return new Frames({ ...originalFrame, [goals]: [] });
-    }
-    return frames.collectAs(
-      [goalId, goalDescription, goalHobby, goalIsActive],
-      goals,
-    );
-  },
-  then: actions([Requesting.respond, { request, goals }]),
-});
-
-export const GetAllGoalsRequest: Sync = (
-  {
-    request,
-    session,
-    hobby,
-    user,
-    goalId,
-    goalDescription,
-    goalHobby,
-    goalIsActive,
-    goals,
-  },
-) => ({
-  when: actions([
-    Requesting.request,
-    { path: "/MilestoneTracker/_getAllGoals", session, hobby },
-    { request },
-  ]),
-  where: async (frames) => {
-    const originalFrame = frames[0];
-    frames = await frames.query(Sessioning._getUser, { session }, { user });
-    frames = await frames.query(
-      MilestoneTracker._getAllGoals,
-      { user, hobby },
       {
         id: goalId,
         description: goalDescription,

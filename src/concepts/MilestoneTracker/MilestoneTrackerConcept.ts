@@ -142,7 +142,7 @@ export default class MilestoneTrackerConcept {
     user: User;
     description: string;
     hobby: string;
-  }): Promise<{ goal: Goal } | { error: string }> {
+  }): Promise<{ goalId: string } | { error: string }> {
     if (!description || description.trim() === "") {
       return { error: "Goal description cannot be empty." };
     }
@@ -174,7 +174,7 @@ export default class MilestoneTrackerConcept {
 
     try {
       await this.goals.insertOne(newGoal);
-      return { goal: newGoalId };
+      return { goalId: newGoalId };
     } catch (e) {
       console.error("Error creating goal:", e);
       return {
@@ -359,11 +359,14 @@ export default class MilestoneTrackerConcept {
   async completeStep(
     { step }: { step: Step },
   ): Promise<Empty | { error: string }> {
+    console.log("[completeStep] called with step:", step);
     const targetStep = await this.steps.findOne({ _id: step });
     if (!targetStep) {
+      console.warn(`[completeStep] Step ${step} not found.`);
       return { error: `Step ${step} not found.` };
     }
     if (targetStep.isComplete) {
+      console.info(`[completeStep] Step ${step} is already complete.`);
       return { error: `Step ${step} is already complete.` };
     }
 
@@ -372,6 +375,9 @@ export default class MilestoneTrackerConcept {
       isActive: true,
     });
     if (!targetGoal) {
+      console.warn(
+        `[completeStep] Goal associated with step ${step} is not active.`,
+      );
       return {
         error:
           `Goal associated with step ${step} is not active. Cannot complete step.`,
@@ -379,13 +385,18 @@ export default class MilestoneTrackerConcept {
     }
 
     try {
-      await this.steps.updateOne(
+      const updateResult = await this.steps.updateOne(
         { _id: step },
         { $set: { isComplete: true, completion: new Date() } },
       );
+      console.log("[completeStep] updateOne result:", updateResult);
+      if (updateResult.modifiedCount !== 1) {
+        console.error(`[completeStep] Step ${step} update failed.`);
+        return { error: `Failed to update step ${step}.` };
+      }
       return {};
     } catch (e) {
-      console.error("Error completing step:", e);
+      console.error("[completeStep] Error completing step:", e);
       return {
         error: `Failed to complete step: ${
           e instanceof Error ? e.message : String(e)
@@ -447,15 +458,20 @@ export default class MilestoneTrackerConcept {
    * @effects sets `isActive` of `goal` to `false`.
    */
   async closeGoal(
-    { goal }: { goal: Goal },
+    { goalId }: { goalId: Goal },
   ): Promise<Empty | { error: string }> {
-    const targetGoal = await this.goals.findOne({ _id: goal, isActive: true });
+    const targetGoal = await this.goals.findOne({
+      _id: goalId,
+      isActive: true,
+    });
     if (!targetGoal) {
-      return { error: `Goal ${goal} not found or is not active.` };
+      return { error: `Goal ${goalId} not found or is not active.` };
     }
 
     try {
-      await this.goals.updateOne({ _id: goal }, { $set: { isActive: false } });
+      await this.goals.updateOne({ _id: goalId }, {
+        $set: { isActive: false },
+      });
       return {};
     } catch (e) {
       console.error("Error closing goal:", e);
@@ -483,10 +499,7 @@ export default class MilestoneTrackerConcept {
   }): Promise<
     { id: Goal; description: string; hobby: string; isActive: boolean }[]
   > {
-    const query: { user: User; isActive: boolean; hobby?: string } = {
-      user,
-      isActive: true,
-    };
+    const query: { user: User; hobby?: string } = { user };
     if (hobby) query.hobby = hobby;
     const goalDocs = await this.goals.find(query).toArray();
     return goalDocs.map((goalDoc) => ({
@@ -511,37 +524,7 @@ export default class MilestoneTrackerConcept {
   }): Promise<
     { id: Goal; description: string; hobby: string; isActive: boolean }[]
   > {
-    const query: { user: User; isActive: boolean } = {
-      user,
-      isActive: true,
-    };
-    const goalDocs = await this.goals.find(query).toArray();
-    return goalDocs.map((goalDoc) => ({
-      id: goalDoc._id,
-      description: goalDoc.description,
-      hobby: goalDoc.hobby,
-      isActive: goalDoc.isActive,
-    }));
-  }
-
-  /**
-   * getAllGoals (user: User, hobby?: string): (goal: {id: Goal, description: string, hobby: string, isActive: boolean})[]
-   *
-   * @requires `user` exists.
-   *
-   * @effects returns an array containing all goals (active and inactive) for the `user` (optionally filtered by hobby), including its `id`, `description`, `hobby`, and `isActive` status.
-   */
-  async _getAllGoals({
-    user,
-    hobby,
-  }: {
-    user: User;
-    hobby?: string;
-  }): Promise<
-    { id: Goal; description: string; hobby: string; isActive: boolean }[]
-  > {
-    const query: { user: User; hobby?: string } = { user };
-    if (hobby) query.hobby = hobby;
+    const query: { user: User } = { user };
     const goalDocs = await this.goals.find(query).toArray();
     return goalDocs.map((goalDoc) => ({
       id: goalDoc._id,

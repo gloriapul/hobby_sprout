@@ -55,7 +55,7 @@ export const exclusions: Array<string> = [
   "/api/MilestoneTracker/completeStep",
   "/api/MilestoneTracker/removeStep",
   "/api/MilestoneTracker/_getGoal",
-  "/api/MilestoneTracker/_getAllGoals",
+  "/api/MilestoneTracker/_getGoals",
   "/api/MilestoneTracker/_getSteps",
   "/api/MilestoneTracker/_getIncompleteSteps",
   "/api/MilestoneTracker/_getCompleteSteps",
