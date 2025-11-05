@@ -25,7 +25,7 @@ export const CreateProfileRequest: Sync = (
 export const CreateProfileResponse: Sync = ({ request }) => ({
   when: actions(
     [Requesting.request, { path: "/UserProfile/createProfile" }, { request }],
-    [UserProfile.createProfile, {}, {}],
+    [UserProfile.createProfile, {}],
   ),
   then: actions([Requesting.respond, { request, msg: {} }]),
 });
@@ -54,7 +54,7 @@ export const SetNameRequest: Sync = (
 export const SetNameResponse: Sync = ({ request }) => ({
   when: actions(
     [Requesting.request, { path: "/UserProfile/setName" }, { request }],
-    [UserProfile.setName, {}, {}],
+    [UserProfile.setName, {}],
   ),
   then: actions([Requesting.respond, { request, msg: {} }]),
 });
@@ -83,7 +83,7 @@ export const SetImageRequest: Sync = (
 export const SetImageResponse: Sync = ({ request }) => ({
   when: actions(
     [Requesting.request, { path: "/UserProfile/setImage" }, { request }],
-    [UserProfile.setImage, {}, {}],
+    [UserProfile.setImage, {}],
   ),
   then: actions([Requesting.respond, { request, msg: {} }]),
 });
@@ -96,7 +96,7 @@ export const SetImageResponseError: Sync = ({ request, error }) => ({
   then: actions([Requesting.respond, { request, msg: { error } }]),
 });
 
-export const CloseProfileRequest: Sync = ({ request, session, user, msg }) => ({
+export const CloseProfileRequest: Sync = ({ request, session, user }) => ({
   when: actions([
     Requesting.request,
     { path: "/UserProfile/closeProfile", session },
@@ -104,24 +104,62 @@ export const CloseProfileRequest: Sync = ({ request, session, user, msg }) => ({
   ]),
   where: async (frames) =>
     await frames.query(Sessioning._getUser, { session }, { user }),
-  then: actions([UserProfile.closeProfile, { user }, { msg }]),
+  then: actions([UserProfile.closeProfile, { user }]),
 });
 
-export const CloseProfileResponse: Sync = ({ request }) => ({
-  when: actions(
-    [Requesting.request, { path: "/UserProfile/closeProfile" }, { request }],
-    [UserProfile.closeProfile, {}, {}],
+// CloseProfile response handlers removed to avoid cycle with deleteUser -> closeProfile
+// --- 1. CloseProfileRequest (Initiator) ---
+/* export const CloseProfileRequest: Sync = ({ request, session, user }) => ({
+  when: actions([
+    Requesting.request,
+    // The request action's input included session
+    { path: "/UserProfile/closeProfile", session },
+    { request },
+  ]),
+  where: async (frames) => {
+    return await frames.query(Sessioning._getUser, { session }, { user });
+  },
+  then: actions(
+    // Only dispatch the first action to prevent flow interruption
+    [UserProfile.closeProfile, { user }],
   ),
-  then: actions([Requesting.respond, { request, msg: {} }]),
 });
 
-export const CloseProfileResponseError: Sync = ({ request, error }) => ({
+// --- 2. CloseProfileResponse (Success Handler) ---
+// MUST accept 'session' and 'user' to correctly match the full flow
+export const CloseProfileResponse: Sync = ({ request, session }) => ({
   when: actions(
-    [Requesting.request, { path: "/UserProfile/closeProfile" }, { request }],
-    [UserProfile.closeProfile, {}, { error }],
+    [Requesting.request,
+     // CRITICAL FIX: Match the request with the session in the input
+     { path: "/UserProfile/closeProfile", session },
+     { request }],
+
+    // Match the successful closeProfile action and capture the user context
+    [UserProfile.closeProfile, { user }],
   ),
-  then: actions([Requesting.respond, { request, msg: { error } }]),
+  then: actions(
+    // Now the second action runs
+    [PasswordAuthentication.deleteUser, { user }],
+    // Finally, respond
+    [Requesting.respond, { request, msg: {} }],
+  ),
 });
+
+// --- 3. CloseProfileResponseError (Failure Handler) ---
+// MUST accept 'session' to correctly match the full flow
+export const CloseProfileResponseError: Sync = ({ request, session, error }) => ({
+  when: actions(
+    [Requesting.request,
+     // CRITICAL FIX: Match the request with the session in the input
+     { path: "/UserProfile/closeProfile", session },
+     { request }],
+
+    [UserProfile.closeProfile, { error }],
+  ),
+  then: actions(
+    [Requesting.respond, { request, msg: { error } }],
+  ),
+}); */
 
 //-- Hobby Management --//
 
@@ -141,7 +179,7 @@ export const SetHobbyRequest: Sync = (
 export const SetHobbyResponse: Sync = ({ request }) => ({
   when: actions(
     [Requesting.request, { path: "/UserProfile/setHobby" }, { request }],
-    [UserProfile.setHobby, {}, {}],
+    [UserProfile.setHobby, {}],
   ),
   then: actions([Requesting.respond, { request, msg: {} }]),
 });
@@ -170,7 +208,7 @@ export const CloseHobbyRequest: Sync = (
 export const CloseHobbyResponse: Sync = ({ request }) => ({
   when: actions(
     [Requesting.request, { path: "/UserProfile/closeHobby" }, { request }],
-    [UserProfile.closeHobby, {}, {}],
+    [UserProfile.closeHobby, {}],
   ),
   then: actions([Requesting.respond, { request, msg: {} }]),
 });

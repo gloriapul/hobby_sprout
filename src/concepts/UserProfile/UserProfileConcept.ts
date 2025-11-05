@@ -262,6 +262,10 @@ export default class UserProfileConcept {
     { user }: { user: User },
   ): Promise<{ userProfile: UserProfileDoc }[]> {
     console.log("[getUserProfile] Called for user:", user);
+    console.log("[getUserProfile] typeof user:", typeof user);
+    if (user && user.constructor) {
+      console.log("[getUserProfile] user.constructor:", user.constructor.name);
+    }
     const profile = await this.userProfiles.findOne({ _id: user });
     console.log("[getUserProfile] findOne result:", profile);
     if (!profile) {

@@ -81,15 +81,7 @@ export const RegisterResponseError: Sync = ({ request, error }) => ({
   then: actions([Requesting.respond, { request, error }]),
 });
 
-// Automatically create a user profile after successful registration
-export const CreateProfileAfterRegister: Sync = ({ user }) => ({
-  when: actions([PasswordAuthentication.register, {}, { user }]),
-  then: actions([UserProfile.createProfile, { user }]),
-});
-
-//-- User Account Deletion --//
-
-export const DeleteUserRequest: Sync = ({ request, session, user, msg }) => ({
+export const DeleteUserRequest: Sync = ({ request, session, user }) => ({
   when: actions([
     Requesting.request,
     { path: "/PasswordAuthentication/deleteUser", session },
@@ -97,22 +89,40 @@ export const DeleteUserRequest: Sync = ({ request, session, user, msg }) => ({
   ]),
   where: async (frames) =>
     await frames.query(Sessioning._getUser, { session }, { user }),
-  then: actions([PasswordAuthentication.deleteUser, { user }, { msg }]),
+  then: actions([PasswordAuthentication.deleteUser, { user }]),
 });
 
-export const DeleteUserResponse: Sync = ({ request, msg }) => ({
+// This sync sends a success response to the frontend after the user's authentication account is deleted.
+export const DeleteUserResponse: Sync = ({ request, user }) => ({
   when: actions(
-    [Requesting.request, { path: "/PasswordAuthentication/deleteUser" }, {
-      request,
-    }],
-    [PasswordAuthentication.deleteUser, {}, { msg }],
+    [Requesting.request, { path: "/UserProfile/closeProfile" }, { request }],
+    [UserProfile.closeProfile, { user }, {}],
+    [PasswordAuthentication.deleteUser, { user }, {}],
   ),
-  then: actions([Requesting.respond, { request, msg }]),
+  then: actions([Requesting.respond, { request, msg: {} }]),
 });
 
-// When a user profile is closed, automatically delete their authentication credentials
-// UserProfile concept
-export const DeleteAccountSync: Sync = ({ user }) => ({
-  when: actions([UserProfile.closeProfile, { user }]),
+// This sync sends an error response to the frontend if the user's authentication account deletion fails.
+export const DeleteUserErrorResponse: Sync = ({ request, user, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/UserProfile/closeProfile" }, { request }],
+    [UserProfile.closeProfile, { user }, {}],
+    [PasswordAuthentication.deleteUser, { user }, { error }],
+  ),
+  then: actions([Requesting.respond, { request, msg: { error } }]),
+});
+
+// Automatically create a user profile after successful registration
+export const CreateProfileAfterRegister: Sync = ({ user }) => ({
+  when: actions([PasswordAuthentication.register, {}, { user }]),
+  then: actions([UserProfile.createProfile, { user }]),
+});
+
+// This sync chains the deletion of the user's authentication account after their profile is closed.
+export const DeleteUserAfterProfileClosed: Sync = ({ user, request }) => ({
+  when: actions(
+    [Requesting.request, { path: "/UserProfile/closeProfile" }, { request }],
+    [UserProfile.closeProfile, { user }, {}],
+  ),
   then: actions([PasswordAuthentication.deleteUser, { user }]),
 });
