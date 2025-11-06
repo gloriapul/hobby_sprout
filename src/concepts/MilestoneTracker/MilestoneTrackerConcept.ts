@@ -138,10 +138,12 @@ export default class MilestoneTrackerConcept {
     user,
     description,
     hobby,
+    autoGenerate,
   }: {
     user: User;
     description: string;
     hobby: string;
+    autoGenerate?: boolean;
   }): Promise<{ goalId: string } | { error: string }> {
     if (!description || description.trim() === "") {
       return { error: "Goal description cannot be empty." };
@@ -413,14 +415,14 @@ export default class MilestoneTrackerConcept {
    * @effects deletes the `step` document from storage.
    */
   async removeStep(
-    { step }: { step: Step },
+    { stepId }: { stepId: Step },
   ): Promise<Empty | { error: string }> {
-    const targetStep = await this.steps.findOne({ _id: step });
+    const targetStep = await this.steps.findOne({ _id: stepId });
     if (!targetStep) {
-      return { error: `Step ${step} not found.` };
+      return { error: `Step ${stepId} not found.` };
     }
     if (targetStep.isComplete) {
-      return { error: `Cannot remove completed step ${step}.` };
+      return { error: `Cannot remove completed step ${stepId}.` };
     }
 
     const targetGoal = await this.goals.findOne({
@@ -430,14 +432,14 @@ export default class MilestoneTrackerConcept {
     if (!targetGoal) {
       return {
         error:
-          `Goal associated with step ${step} is not active. Cannot remove step.`,
+          `Goal associated with step ${stepId} is not active. Cannot remove step.`,
       };
     }
 
     try {
-      const res = await this.steps.deleteOne({ _id: step });
+      const res = await this.steps.deleteOne({ _id: stepId });
       if (res.deletedCount !== 1) {
-        return { error: `Failed to remove step ${step}.` };
+        return { error: `Failed to remove step ${stepId}.` };
       }
       return {};
     } catch (e) {
