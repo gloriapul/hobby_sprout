@@ -27,7 +27,9 @@ This document provides the REST API specification for all concepts in the HobbyS
 ```json
 {
   "user": "string",
-  "description": "string"
+  "description": "string",
+  "hobby": "string",
+  "autoGenerate": "boolean"
 }
 ```
 
@@ -269,7 +271,8 @@ This document provides the REST API specification for all concepts in the HobbyS
 **Request Body:**
 ```json
 {
-  "user": "string"
+  "user": "string",
+  "hobby": "string"
 }
 ```
 
@@ -382,7 +385,7 @@ This document provides the REST API specification for all concepts in the HobbyS
 ```json
 {
   "user": "string",
-  "displayname": "string"
+  "name": "string"
 }
 ```
 
@@ -552,8 +555,8 @@ This document provides the REST API specification for all concepts in the HobbyS
 [
   {
     "_id": "string",
-    "displayname": "string",
-    "profile": "string"
+    "name": "string",
+    "image": "string"
   }
 ]
 ```
