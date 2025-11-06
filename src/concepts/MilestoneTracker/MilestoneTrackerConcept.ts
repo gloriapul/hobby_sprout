@@ -87,11 +87,9 @@ export default class MilestoneTrackerConcept {
     // 1. Length validation (10-300 characters)
     for (const step of steps) {
       if (step.length < 10) {
-        console.error(`[validateStepQuality] FAIL: too brief: ${step}`);
         return `Step too brief: "${step}". Provide more detail to clarify the action.`;
       }
       if (step.length > 300) {
-        console.error(`[validateStepQuality] FAIL: too long: ${step}`);
         return `Step too detailed: "${step}". Keep each step brief and focused on one main action.`;
       }
     }
@@ -115,9 +113,6 @@ export default class MilestoneTrackerConcept {
     for (const step of steps) {
       const commaCount = (step.match(/,/g) || []).length;
       if (commaCount > 6) {
-        console.error(
-          `[validateStepQuality] FAIL: too many commas (${commaCount}): ${step}`,
-        );
         return `Step too verbose: "${step}". Break into simpler steps.`;
       }
     }
@@ -178,7 +173,6 @@ export default class MilestoneTrackerConcept {
       await this.goals.insertOne(newGoal);
       return { goalId: newGoalId };
     } catch (e) {
-      console.error("Error creating goal:", e);
       return {
         error: `Failed to create goal: ${
           e instanceof Error ? e.message : String(e)
@@ -288,7 +282,6 @@ export default class MilestoneTrackerConcept {
 
       return { steps: newStepDocs.map((s) => s._id) };
     } catch (e: unknown) {
-      console.error("Error generating steps with LLM:", e);
       let llmErrorMessage = "LLM generation failed.";
       if (typeof e === "object" && e !== null && "message" in e) {
         llmErrorMessage = `Failed to generate steps: ${e.message}`;
@@ -342,7 +335,6 @@ export default class MilestoneTrackerConcept {
       await this.steps.insertOne(newStep);
       return { step: newStepId };
     } catch (e) {
-      console.error("Error adding step:", e);
       return {
         error: `Failed to add step: ${
           e instanceof Error ? e.message : String(e)
@@ -361,14 +353,11 @@ export default class MilestoneTrackerConcept {
   async completeStep(
     { step }: { step: Step },
   ): Promise<Empty | { error: string }> {
-    console.log("[completeStep] called with step:", step);
     const targetStep = await this.steps.findOne({ _id: step });
     if (!targetStep) {
-      console.warn(`[completeStep] Step ${step} not found.`);
       return { error: `Step ${step} not found.` };
     }
     if (targetStep.isComplete) {
-      console.info(`[completeStep] Step ${step} is already complete.`);
       return { error: `Step ${step} is already complete.` };
     }
 
@@ -377,9 +366,6 @@ export default class MilestoneTrackerConcept {
       isActive: true,
     });
     if (!targetGoal) {
-      console.warn(
-        `[completeStep] Goal associated with step ${step} is not active.`,
-      );
       return {
         error:
           `Goal associated with step ${step} is not active. Cannot complete step.`,
@@ -391,14 +377,11 @@ export default class MilestoneTrackerConcept {
         { _id: step },
         { $set: { isComplete: true, completion: new Date() } },
       );
-      console.log("[completeStep] updateOne result:", updateResult);
       if (updateResult.modifiedCount !== 1) {
-        console.error(`[completeStep] Step ${step} update failed.`);
         return { error: `Failed to update step ${step}.` };
       }
       return {};
     } catch (e) {
-      console.error("[completeStep] Error completing step:", e);
       return {
         error: `Failed to complete step: ${
           e instanceof Error ? e.message : String(e)
@@ -443,7 +426,6 @@ export default class MilestoneTrackerConcept {
       }
       return {};
     } catch (e) {
-      console.error("Error removing step:", e);
       return {
         error: `Failed to remove step: ${
           e instanceof Error ? e.message : String(e)
@@ -476,7 +458,6 @@ export default class MilestoneTrackerConcept {
       });
       return {};
     } catch (e) {
-      console.error("Error closing goal:", e);
       return {
         error: `Failed to close goal: ${
           e instanceof Error ? e.message : String(e)
@@ -645,7 +626,6 @@ export default class MilestoneTrackerConcept {
       }
       return { steps: newStepDocs.map((s) => s._id) };
     } catch (e: unknown) {
-      console.error("Error regenerating steps with LLM:", e);
       let llmErrorMessage = "LLM regeneration failed.";
       if (typeof e === "object" && e !== null && "message" in e) {
         llmErrorMessage = `Failed to regenerate steps: ${e.message}`;

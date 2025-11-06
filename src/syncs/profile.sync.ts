@@ -107,60 +107,6 @@ export const CloseProfileRequest: Sync = ({ request, session, user }) => ({
   then: actions([UserProfile.closeProfile, { user }]),
 });
 
-// CloseProfile response handlers removed to avoid cycle with deleteUser -> closeProfile
-// --- 1. CloseProfileRequest (Initiator) ---
-/* export const CloseProfileRequest: Sync = ({ request, session, user }) => ({
-  when: actions([
-    Requesting.request,
-    // The request action's input included session
-    { path: "/UserProfile/closeProfile", session },
-    { request },
-  ]),
-  where: async (frames) => {
-    return await frames.query(Sessioning._getUser, { session }, { user });
-  },
-  then: actions(
-    // Only dispatch the first action to prevent flow interruption
-    [UserProfile.closeProfile, { user }],
-  ),
-});
-
-// --- 2. CloseProfileResponse (Success Handler) ---
-// MUST accept 'session' and 'user' to correctly match the full flow
-export const CloseProfileResponse: Sync = ({ request, session }) => ({
-  when: actions(
-    [Requesting.request,
-     // CRITICAL FIX: Match the request with the session in the input
-     { path: "/UserProfile/closeProfile", session },
-     { request }],
-
-    // Match the successful closeProfile action and capture the user context
-    [UserProfile.closeProfile, { user }],
-  ),
-  then: actions(
-    // Now the second action runs
-    [PasswordAuthentication.deleteUser, { user }],
-    // Finally, respond
-    [Requesting.respond, { request, msg: {} }],
-  ),
-});
-
-// --- 3. CloseProfileResponseError (Failure Handler) ---
-// MUST accept 'session' to correctly match the full flow
-export const CloseProfileResponseError: Sync = ({ request, session, error }) => ({
-  when: actions(
-    [Requesting.request,
-     // CRITICAL FIX: Match the request with the session in the input
-     { path: "/UserProfile/closeProfile", session },
-     { request }],
-
-    [UserProfile.closeProfile, { error }],
-  ),
-  then: actions(
-    [Requesting.respond, { request, msg: { error } }],
-  ),
-}); */
-
 //-- Hobby Management --//
 
 export const SetHobbyRequest: Sync = (

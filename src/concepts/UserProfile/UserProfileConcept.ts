@@ -224,11 +224,8 @@ export default class UserProfileConcept {
   async closeProfile(
     { user }: { user: User },
   ): Promise<Empty | { error: string }> {
-    console.log("[closeProfile] Attempting to close profile for user:", user);
     const profile = await this.userProfiles.findOne({ _id: user });
-    console.log("[closeProfile] findOne result:", profile);
     if (!profile) {
-      console.error(`[closeProfile] User profile for ${user} not found.`);
       return { error: `User profile for ${user} not found.` };
     }
 
@@ -237,16 +234,10 @@ export default class UserProfileConcept {
 
     // delete the user profile
     const result = await this.userProfiles.deleteOne({ _id: user });
-    console.log("[closeProfile] deleteOne result:", result);
-
     if (result.deletedCount === 0) {
-      console.error(
-        `[closeProfile] Failed to delete profile for user ${user}.`,
-      );
       return { error: `Failed to delete profile for user ${user}.` };
     }
 
-    console.log("[closeProfile] Successfully deleted profile for user:", user);
     return {};
   }
 
@@ -261,18 +252,10 @@ export default class UserProfileConcept {
   async _getUserProfile(
     { user }: { user: User },
   ): Promise<{ userProfile: UserProfileDoc }[]> {
-    console.log("[getUserProfile] Called for user:", user);
-    console.log("[getUserProfile] typeof user:", typeof user);
-    if (user && user.constructor) {
-      console.log("[getUserProfile] user.constructor:", user.constructor.name);
-    }
     const profile = await this.userProfiles.findOne({ _id: user });
-    console.log("[getUserProfile] findOne result:", profile);
     if (!profile) {
-      console.log("[getUserProfile] No profile found for user:", user);
       return [];
     }
-    console.log("[getUserProfile] Returning profile for user:", user);
     return [{ userProfile: profile }];
   }
 

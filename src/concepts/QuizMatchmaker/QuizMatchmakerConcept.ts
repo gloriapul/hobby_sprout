@@ -176,7 +176,6 @@ export default class QuizMatchmakerConcept {
       });
       return { matchedHobby };
     } catch (llmError: unknown) {
-      console.error("LLM Generation Error:", llmError);
       return {
         error: `Failed to generate hobby match with LLM: ${
           llmError instanceof Error ? llmError.message : "Unknown LLM error"
