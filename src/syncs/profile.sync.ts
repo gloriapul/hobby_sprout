@@ -9,6 +9,7 @@ import { actions, Frames, Sync } from "@engine";
 
 //-- Profile Management --//
 
+/** Handles a request to create a user profile. */
 export const CreateProfileRequest: Sync = (
   { request, session, user, msg },
 ) => ({
@@ -22,6 +23,7 @@ export const CreateProfileRequest: Sync = (
   then: actions([UserProfile.createProfile, { user }, { msg }]),
 });
 
+/** Responds on successful profile creation. */
 export const CreateProfileResponse: Sync = ({ request }) => ({
   when: actions(
     [Requesting.request, { path: "/UserProfile/createProfile" }, { request }],
@@ -30,6 +32,7 @@ export const CreateProfileResponse: Sync = ({ request }) => ({
   then: actions([Requesting.respond, { request, msg: {} }]),
 });
 
+/** Responds with an error if profile creation fails. */
 export const CreateProfileResponseError: Sync = ({ request, error }) => ({
   when: actions(
     [Requesting.request, { path: "/UserProfile/createProfile" }, { request }],
@@ -38,6 +41,7 @@ export const CreateProfileResponseError: Sync = ({ request, error }) => ({
   then: actions([Requesting.respond, { request, msg: { error } }]),
 });
 
+/** Handles a request to set a user's display name. */
 export const SetNameRequest: Sync = (
   { request, session, displayname, user, msg },
 ) => ({
@@ -51,6 +55,7 @@ export const SetNameRequest: Sync = (
   then: actions([UserProfile.setName, { user, displayname }, { msg }]),
 });
 
+/** Responds on successful name change. */
 export const SetNameResponse: Sync = ({ request }) => ({
   when: actions(
     [Requesting.request, { path: "/UserProfile/setName" }, { request }],
@@ -59,6 +64,7 @@ export const SetNameResponse: Sync = ({ request }) => ({
   then: actions([Requesting.respond, { request, msg: {} }]),
 });
 
+/** Responds with an error if name change fails. */
 export const SetNameResponseError: Sync = ({ request, error }) => ({
   when: actions(
     [Requesting.request, { path: "/UserProfile/setName" }, { request }],
@@ -67,6 +73,7 @@ export const SetNameResponseError: Sync = ({ request, error }) => ({
   then: actions([Requesting.respond, { request, msg: { error } }]),
 });
 
+/** Handles a request to set a user's profile image. */
 export const SetImageRequest: Sync = (
   { request, session, image, user, msg },
 ) => ({
@@ -80,6 +87,7 @@ export const SetImageRequest: Sync = (
   then: actions([UserProfile.setImage, { user, image }, { msg }]),
 });
 
+/** Responds on successful image change. */
 export const SetImageResponse: Sync = ({ request }) => ({
   when: actions(
     [Requesting.request, { path: "/UserProfile/setImage" }, { request }],
@@ -88,6 +96,7 @@ export const SetImageResponse: Sync = ({ request }) => ({
   then: actions([Requesting.respond, { request, msg: {} }]),
 });
 
+/** Responds with an error if image change fails. */
 export const SetImageResponseError: Sync = ({ request, error }) => ({
   when: actions(
     [Requesting.request, { path: "/UserProfile/setImage" }, { request }],
@@ -96,6 +105,7 @@ export const SetImageResponseError: Sync = ({ request, error }) => ({
   then: actions([Requesting.respond, { request, msg: { error } }]),
 });
 
+/** Handles a request to close a user's profile. */
 export const CloseProfileRequest: Sync = ({ request, session, user }) => ({
   when: actions([
     Requesting.request,
@@ -109,6 +119,7 @@ export const CloseProfileRequest: Sync = ({ request, session, user }) => ({
 
 //-- Hobby Management --//
 
+/** Handles a request to set an active hobby for a user. */
 export const SetHobbyRequest: Sync = (
   { request, session, hobby, user },
 ) => ({
@@ -122,6 +133,7 @@ export const SetHobbyRequest: Sync = (
   then: actions([UserProfile.setHobby, { user, hobby }]),
 });
 
+/** Responds on successful hobby activation. */
 export const SetHobbyResponse: Sync = ({ request, user, hobby }) => ({
   when: actions(
     [Requesting.request, { path: "/UserProfile/setHobby", hobby }, { request }],
@@ -130,6 +142,7 @@ export const SetHobbyResponse: Sync = ({ request, user, hobby }) => ({
   then: actions([Requesting.respond, { request, msg: {} }]),
 });
 
+/** Responds with an error if hobby activation fails. */
 export const SetHobbyResponseError: Sync = ({ request, error }) => ({
   when: actions(
     [Requesting.request, { path: "/UserProfile/setHobby" }, { request }],
@@ -138,6 +151,7 @@ export const SetHobbyResponseError: Sync = ({ request, error }) => ({
   then: actions([Requesting.respond, { request, msg: { error } }]),
 });
 
+/** Handles a request to deactivate a hobby for a user. */
 export const CloseHobbyRequest: Sync = (
   { request, session, hobby, user },
 ) => ({
@@ -151,6 +165,7 @@ export const CloseHobbyRequest: Sync = (
   then: actions([UserProfile.closeHobby, { user, hobby }]),
 });
 
+/** Responds on successful hobby deactivation. */
 export const CloseHobbyResponse: Sync = ({ request, user, hobby }) => ({
   when: actions(
     [Requesting.request, { path: "/UserProfile/closeHobby", hobby }, {
@@ -161,6 +176,7 @@ export const CloseHobbyResponse: Sync = ({ request, user, hobby }) => ({
   then: actions([Requesting.respond, { request, msg: {} }]),
 });
 
+/** Responds with an error if hobby deactivation fails. */
 export const CloseHobbyResponseError: Sync = ({ request, error }) => ({
   when: actions(
     [Requesting.request, { path: "/UserProfile/closeHobby" }, { request }],
@@ -171,6 +187,7 @@ export const CloseHobbyResponseError: Sync = ({ request, error }) => ({
 
 //-- Query Syncs --//
 
+/** Handles a request to get a user's profile. */
 export const GetUserProfileRequest: Sync = (
   { request, session, user, userProfile },
 ) => ({
@@ -192,6 +209,7 @@ export const GetUserProfileRequest: Sync = (
   then: actions([Requesting.respond, { request, userProfile }]),
 });
 
+/** Handles a request to get all of a user's hobbies. */
 export const GetUserHobbiesRequest: Sync = (
   { request, session, user, hobby, active, hobbies },
 ) => ({
@@ -216,6 +234,7 @@ export const GetUserHobbiesRequest: Sync = (
   then: actions([Requesting.respond, { request, hobbies }]),
 });
 
+/** Handles a request to get a user's active hobbies. */
 export const GetActiveHobbiesRequest: Sync = (
   { request, session, user, hobby, active, hobbies },
 ) => ({

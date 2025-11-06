@@ -9,6 +9,7 @@ import { actions, Frames, Sync } from "@engine";
 
 //-- Goal Management --//
 
+/** Handles a request to create a new goal. */
 export const CreateGoalRequest: Sync = (
   { request, session, hobby, description, user, goalId, autoGenerate },
 ) => ({
@@ -41,7 +42,7 @@ export const CreateGoalRequest: Sync = (
   ]),
 });
 
-// Response for when steps are auto-generated
+/** Responds when a goal and auto-generated steps are created. */
 export const CreateGoalAndStepsResponse: Sync = (
   { request, goalId, steps },
 ) => ({
@@ -57,10 +58,7 @@ export const CreateGoalAndStepsResponse: Sync = (
   then: actions([Requesting.respond, { request, goalId, steps }]),
 });
 
-/**
- * @sync_name GenerateStepsErrorResponse
- * @description Handles errors that occur during the automatic step generation phase after a goal has been successfully created.
- */
+/** Responds with an error if auto-generation of steps fails after goal creation. */
 export const GenerateStepsErrorResponse: Sync = (
   { request, error, goalId },
 ) => ({
@@ -76,7 +74,7 @@ export const GenerateStepsErrorResponse: Sync = (
   then: actions([Requesting.respond, { request, error }]),
 });
 
-// Response for when steps are added manually
+/** Responds when a goal is created without auto-generated steps. */
 export const CreateGoalManualResponse: Sync = (
   { request, goalId },
 ) => ({
@@ -91,10 +89,7 @@ export const CreateGoalManualResponse: Sync = (
   then: actions([Requesting.respond, { request, goalId }]),
 });
 
-/**
- * @sync_name GenerateStepsAfterGoalCreated
- * @description Automatically generates milestone steps if the autoGenerate flag is true.
- */
+/** Chains step generation after a goal is created with the auto-generate flag. */
 export const GenerateStepsAfterGoalCreated: Sync = (
   { goalId, user, hobby, description },
 ) => ({
@@ -106,7 +101,7 @@ export const GenerateStepsAfterGoalCreated: Sync = (
   then: actions([MilestoneTracker.generateSteps, { goal: goalId }]),
 });
 
-// Error response for when auto-generation fails
+/** Responds with an error if goal creation with auto-steps fails. */
 export const CreateGoalAndStepsErrorResponse: Sync = ({ request, error }) => ({
   when: actions(
     [
@@ -119,7 +114,7 @@ export const CreateGoalAndStepsErrorResponse: Sync = ({ request, error }) => ({
   then: actions([Requesting.respond, { request, error }]),
 });
 
-// Error response for when manual creation fails
+/** Responds with an error if manual goal creation fails. */
 export const CreateGoalManualErrorResponse: Sync = ({ request, error }) => ({
   when: actions(
     [
@@ -132,6 +127,7 @@ export const CreateGoalManualErrorResponse: Sync = ({ request, error }) => ({
   then: actions([Requesting.respond, { request, error }]),
 });
 
+/** Handles a request to close a goal. */
 export const CloseGoalRequest: Sync = (
   { request, session, goalId, user },
 ) => ({
@@ -145,6 +141,7 @@ export const CloseGoalRequest: Sync = (
   then: actions([MilestoneTracker.closeGoal, { goalId }, {}]),
 });
 
+/** Responds on successful goal closure. */
 export const CloseGoalResponse: Sync = ({ request }) => ({
   when: actions(
     [Requesting.request, { path: "/MilestoneTracker/closeGoal" }, { request }],
@@ -153,6 +150,7 @@ export const CloseGoalResponse: Sync = ({ request }) => ({
   then: actions([Requesting.respond, { request, msg: {} }]),
 });
 
+/** Responds with an error if goal closure fails. */
 export const CloseGoalResponseError: Sync = ({ request, error }) => ({
   when: actions(
     [Requesting.request, { path: "/MilestoneTracker/closeGoal" }, { request }],
@@ -163,6 +161,7 @@ export const CloseGoalResponseError: Sync = ({ request, error }) => ({
 
 //-- Step Management --//
 
+/** Handles a request to generate steps for an existing goal. */
 export const GenerateStepsRequest: Sync = (
   { request, session, goalId, user, steps },
 ) => ({
@@ -178,6 +177,7 @@ export const GenerateStepsRequest: Sync = (
   }]),
 });
 
+/** Responds with newly generated steps. */
 export const GenerateStepsResponse: Sync = ({ request, steps }) => ({
   when: actions(
     [Requesting.request, { path: "/MilestoneTracker/generateSteps" }, {
@@ -188,6 +188,7 @@ export const GenerateStepsResponse: Sync = ({ request, steps }) => ({
   then: actions([Requesting.respond, { request, steps }]),
 });
 
+/** Responds with an error if step generation fails. */
 export const GenerateStepsResponseError: Sync = ({ request, error }) => ({
   when: actions(
     [Requesting.request, { path: "/MilestoneTracker/generateSteps" }, {
@@ -198,6 +199,7 @@ export const GenerateStepsResponseError: Sync = ({ request, error }) => ({
   then: actions([Requesting.respond, { request, error }]),
 });
 
+/** Handles a request to regenerate steps for a goal. */
 export const RegenerateStepsRequest: Sync = (
   { request, session, goalId, user, steps },
 ) => ({
@@ -213,6 +215,7 @@ export const RegenerateStepsRequest: Sync = (
   }]),
 });
 
+/** Responds with newly regenerated steps. */
 export const RegenerateStepsResponse: Sync = ({ request, steps }) => ({
   when: actions(
     [Requesting.request, { path: "/MilestoneTracker/regenerateSteps" }, {
@@ -223,6 +226,7 @@ export const RegenerateStepsResponse: Sync = ({ request, steps }) => ({
   then: actions([Requesting.respond, { request, steps }]),
 });
 
+/** Responds with an error if step regeneration fails. */
 export const RegenerateStepsResponseError: Sync = ({ request, error }) => ({
   when: actions(
     [Requesting.request, { path: "/MilestoneTracker/regenerateSteps" }, {
@@ -233,6 +237,7 @@ export const RegenerateStepsResponseError: Sync = ({ request, error }) => ({
   then: actions([Requesting.respond, { request, error }]),
 });
 
+/** Handles a request to add a manual step to a goal. */
 export const AddStepRequest: Sync = (
   { request, session, goalId, description, user, step },
 ) => {
@@ -256,6 +261,7 @@ export const AddStepRequest: Sync = (
   });
 };
 
+/** Responds with the newly added step's ID. */
 export const AddStepResponse: Sync = ({ request, step }) => ({
   when: actions(
     [Requesting.request, { path: "/MilestoneTracker/addStep" }, { request }],
@@ -264,6 +270,7 @@ export const AddStepResponse: Sync = ({ request, step }) => ({
   then: actions([Requesting.respond, { request, step }]),
 });
 
+/** Handles a request to mark a step as complete. */
 export const CompleteStepRequest: Sync = (
   { request, session, stepId, user },
 ) => ({
@@ -277,6 +284,7 @@ export const CompleteStepRequest: Sync = (
   then: actions([MilestoneTracker.completeStep, { step: stepId }, {}]),
 });
 
+/** Responds on successful step completion. */
 export const CompleteStepResponse: Sync = ({ request }) => ({
   when: actions(
     [Requesting.request, { path: "/MilestoneTracker/completeStep" }, {
@@ -287,6 +295,7 @@ export const CompleteStepResponse: Sync = ({ request }) => ({
   then: actions([Requesting.respond, { request, msg: {} }]),
 });
 
+/** Responds with an error if step completion fails. */
 export const CompleteStepResponseError: Sync = ({ request, error }) => ({
   when: actions(
     [Requesting.request, { path: "/MilestoneTracker/completeStep" }, {
@@ -297,6 +306,7 @@ export const CompleteStepResponseError: Sync = ({ request, error }) => ({
   then: actions([Requesting.respond, { request, error }]),
 });
 
+/** Handles a request to remove a step. */
 export const RemoveStepRequest: Sync = (
   { request, session, stepId, user },
 ) => {
@@ -312,6 +322,7 @@ export const RemoveStepRequest: Sync = (
   });
 };
 
+/** Responds on successful step removal. */
 export const RemoveStepResponse: Sync = ({ request }) => ({
   when: actions(
     [Requesting.request, { path: "/MilestoneTracker/removeStep" }, { request }],
@@ -320,6 +331,7 @@ export const RemoveStepResponse: Sync = ({ request }) => ({
   then: actions([Requesting.respond, { request, msg: {} }]),
 });
 
+/** Responds with an error if step removal fails. */
 export const RemoveStepResponseError: Sync = ({ request, error }) => ({
   when: actions(
     [Requesting.request, { path: "/MilestoneTracker/removeStep" }, { request }],
@@ -330,6 +342,7 @@ export const RemoveStepResponseError: Sync = ({ request, error }) => ({
 
 //-- Query Syncs --//
 
+/** Handles a request to get a user's goal(s), optionally filtered by hobby. */
 export const GetGoalRequest: Sync = (
   {
     request,
@@ -372,6 +385,7 @@ export const GetGoalRequest: Sync = (
   then: actions([Requesting.respond, { request, goals }]),
 });
 
+/** Handles a request to get all of a user's goals. */
 export const GetGoalsRequest: Sync = (
   {
     request,
@@ -413,6 +427,7 @@ export const GetGoalsRequest: Sync = (
   then: actions([Requesting.respond, { request, goals }]),
 });
 
+/** Handles a request to get the steps for a goal. */
 export const GetStepsRequest: Sync = (
   {
     request,

@@ -9,6 +9,7 @@ import { actions, Frames, Sync } from "@engine";
 
 //-- Quiz & Matching --//
 
+/** Handles a request to generate a hobby match from quiz answers. */
 export const GenerateHobbyMatchRequest: Sync = (
   { request, session, answers, user, matchedHobby },
 ) => ({
@@ -24,6 +25,7 @@ export const GenerateHobbyMatchRequest: Sync = (
   }]),
 });
 
+/** Responds with the generated hobby match. */
 export const GenerateHobbyMatchResponse: Sync = (
   { request, matchedHobby },
 ) => ({
@@ -36,6 +38,7 @@ export const GenerateHobbyMatchResponse: Sync = (
   then: actions([Requesting.respond, { request, matchedHobby }]),
 });
 
+/** Responds with an error if hobby match generation fails. */
 export const GenerateHobbyMatchResponseError: Sync = ({ request, error }) => ({
   when: actions(
     [Requesting.request, { path: "/QuizMatchmaker/generateHobbyMatch" }, {
@@ -46,6 +49,7 @@ export const GenerateHobbyMatchResponseError: Sync = ({ request, error }) => ({
   then: actions([Requesting.respond, { request, error }]),
 });
 
+/** Handles a request to delete all hobby matches for a user. */
 export const DeleteHobbyMatchesRequest: Sync = (
   { request, session, user },
 ) => ({
@@ -59,6 +63,7 @@ export const DeleteHobbyMatchesRequest: Sync = (
   then: actions([QuizMatchmaker.deleteHobbyMatches, { user }]),
 });
 
+/** Responds on successful deletion of hobby matches. */
 export const DeleteHobbyMatchesResponse: Sync = ({ request }) => ({
   when: actions(
     [Requesting.request, { path: "/QuizMatchmaker/deleteHobbyMatches" }, {
@@ -69,6 +74,7 @@ export const DeleteHobbyMatchesResponse: Sync = ({ request }) => ({
   then: actions([Requesting.respond, { request }]),
 });
 
+/** Responds with an error if deletion of hobby matches fails. */
 export const DeleteHobbyMatchesResponseError: Sync = ({ request, error }) => ({
   when: actions(
     [Requesting.request, { path: "/QuizMatchmaker/deleteHobbyMatches" }, {
@@ -81,6 +87,7 @@ export const DeleteHobbyMatchesResponseError: Sync = ({ request, error }) => ({
 
 //-- Query Syncs --//
 
+/** Handles a request to get all hobby matches for a user. */
 export const GetAllHobbyMatchesRequest: Sync = (
   { request, session, user, id, hobby, matchedAt, matches },
 ) => ({
