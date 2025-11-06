@@ -67,7 +67,8 @@ This document provides the REST API specification for all concepts in the HobbyS
 **Request Body:**
 ```json
 {
-  "goal": "string"
+  "goal": "string",
+  "user": "string"
 }
 ```
 
@@ -104,7 +105,8 @@ This document provides the REST API specification for all concepts in the HobbyS
 **Request Body:**
 ```json
 {
-  "goal": "string"
+  "goal": "string",
+  "user": "string"
 }
 ```
 
@@ -141,7 +143,8 @@ This document provides the REST API specification for all concepts in the HobbyS
 ```json
 {
   "goal": "string",
-  "description": "string"
+  "description": "string",
+  "user": "string"
 }
 ```
 
@@ -176,7 +179,8 @@ This document provides the REST API specification for all concepts in the HobbyS
 **Request Body:**
 ```json
 {
-  "step": "string"
+  "step": "string",
+  "user": "string"
 }
 ```
 
@@ -209,7 +213,8 @@ This document provides the REST API specification for all concepts in the HobbyS
 **Request Body:**
 ```json
 {
-  "step": "string"
+  "step": "string",
+  "user": "string"
 }
 ```
 
@@ -240,7 +245,8 @@ This document provides the REST API specification for all concepts in the HobbyS
 **Request Body:**
 ```json
 {
-  "goal": "string"
+  "goal": "string",
+  "user": "string"
 }
 ```
 
