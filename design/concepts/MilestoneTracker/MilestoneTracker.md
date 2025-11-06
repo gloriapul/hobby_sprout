@@ -25,22 +25,22 @@
   *   `createGoal(user: User, description: String, hobby: String): (goal: Goal)`
     *   **requires**: No active `Goal` for this `user` and `hobby` already exists. `description` and `hobby` are not empty strings.
     *   **effects**: Creates a new `Goal` `g`; sets its `user` to `user`, `description` to `description`, and `hobby` to `hobby`; sets `isActive` to `true`; returns `g` as `goal`.
-  *   `generateSteps(goal: Goal): (steps: Step[])`
+  *   `generateSteps(goal: Goal, user: User): (steps: Step[])`
     *   **requires**: `goal` exists and is active; no `Steps` are currently associated with this `goal`.
     *   **effects**: Uses an internal LLM to generate `Step` descriptions based on the `goal`'s description; for each generated description, creates a new `Step` associated with `goal`, sets `description`, `start` (current date), and `isComplete` to `false`; returns the IDs of the created `Steps` as an array `steps`.
-  *   `regenerateSteps(goal: Goal): (steps: Step[])`
+  *   `regenerateSteps(goal: Goal, user: User): (steps: Step[])`
     *   **requires**: `goal` exists and is active.
     *   **effects**: Deletes all existing `Steps` for the `goal` (regardless of completion status), then uses the internal LLM to generate new `Step` descriptions as in `generateSteps`. For each generated description, creates a new `Step` associated with `goal`, sets `description`, `start` (current date), and `isComplete` to `false`; returns the IDs of the new `Steps` as an array `steps`.
-    *   `addStep(goal: Goal, description: String): (step: Step)`
+    *   `addStep(goal: Goal, description: String, user: User): (step: Step)`
         *   **requires**: `goal` exists and is active; `description` is not an empty string.
         *   **effects**: Creates a new `Step` `s`; sets `goalId` to `goal`, `description` to `description`, `start` to current date, and `isComplete` to `false`; returns `s` as `step`.
-    *   `completeStep(step: Step): Empty`
+    *   `completeStep(step: Step, user: User): Empty`
         *   **requires**: `step` exists and is not already complete. The `Goal` associated with `step` is active.
         *   **effects**: Sets `isComplete` of `step` to `true`; sets `completion` date to current date.
-    *   `removeStep(step: Step): Empty`
+    *   `removeStep(step: Step, user: User): Empty`
         *   **requires**: `step` exists; `step` is not complete; the `Goal` associated with `step` is active.
         *   **effects**: Deletes the `step` from storage.
-    *   `closeGoal(goal: Goal): Empty`
+    *   `closeGoal(goal: Goal, user: User): Empty`
         *   **requires**: `goal` exists and is active.
         *   **effects**: Sets `isActive` of `goal` to `false`.
 
@@ -347,12 +347,23 @@ export default class MilestoneTrackerConcept {
    * for each generated description, creates a new `Step` associated with `goal`, sets `description`,
    * `start` (current date), and `isComplete` to `false`; returns the IDs of the created `Steps` as an array `steps`.
    */
-  async generateSteps(
-    { goal }: { goal: Goal },
-  ): Promise<{ steps: Step[] } | { error: string }> {
-    const targetGoal = await this.goals.findOne({ _id: goal, isActive: true });
+  async generateSteps({
+    goal,
+    user,
+  }: {
+    goal: Goal;
+    user: User;
+  }): Promise<{ steps: Step[] } | { error: string }> {
+    const targetGoal = await this.goals.findOne({
+      _id: goal,
+      isActive: true,
+      user,
+    });
     if (!targetGoal) {
-      return { error: `Goal ${goal} not found or is not active.` };
+      return {
+        error:
+          `Goal ${goal} not found, is not active, or you do not have permission.`,
+      };
     }
 
     const existingStepsCount = await this.steps.countDocuments({
@@ -379,17 +390,23 @@ export default class MilestoneTrackerConcept {
   async addStep({
     goal,
     description,
+    user,
   }: {
     goal: Goal;
     description: string;
+    user: User;
   }): Promise<{ step: Step } | { error: string }> {
     if (!description || description.trim() === "") {
       return { error: "Step description cannot be empty." };
     }
 
-    const targetGoal = await this.goals.findOne({ _id: goal, isActive: true });
+    const targetGoal = await this.goals.findOne({
+      _id: goal,
+      isActive: true,
+      user,
+    });
     if (!targetGoal) {
-      return { error: "Cannot add steps to an inactive goal." };
+      return { error: "Cannot add steps to an inactive or unauthorized goal." };
     }
 
     // validate the quality of the manually added step
@@ -426,9 +443,13 @@ export default class MilestoneTrackerConcept {
    *
    * @effects sets `isComplete` of `step` to `true`; sets `completion` date to current date.
    */
-  async completeStep(
-    { step }: { step: Step },
-  ): Promise<Empty | { error: string }> {
+  async completeStep({
+    step,
+    user,
+  }: {
+    step: Step;
+    user: User;
+  }): Promise<Empty | { error: string }> {
     const targetStep = await this.steps.findOne({ _id: step });
     if (!targetStep) {
       return { error: `Step ${step} not found.` };
@@ -440,11 +461,12 @@ export default class MilestoneTrackerConcept {
     const targetGoal = await this.goals.findOne({
       _id: targetStep.goalId,
       isActive: true,
+      user,
     });
     if (!targetGoal) {
       return {
         error:
-          `Goal associated with step ${step} is not active. Cannot complete step.`,
+          `Goal associated with step ${step} is not active or you do not have permission. Cannot complete step.`,
       };
     }
 
@@ -473,9 +495,13 @@ export default class MilestoneTrackerConcept {
    *
    * @effects deletes the `step` document from storage.
    */
-  async removeStep(
-    { step }: { step: Step },
-  ): Promise<Empty | { error: string }> {
+  async removeStep({
+    step,
+    user,
+  }: {
+    step: Step;
+    user: User;
+  }): Promise<Empty | { error: string }> {
     const targetStep = await this.steps.findOne({ _id: step });
     if (!targetStep) {
       return { error: `Step ${step} not found.` };
@@ -487,11 +513,12 @@ export default class MilestoneTrackerConcept {
     const targetGoal = await this.goals.findOne({
       _id: targetStep.goalId,
       isActive: true,
+      user,
     });
     if (!targetGoal) {
       return {
         error:
-          `Goal associated with step ${step} is not active. Cannot remove step.`,
+          `Goal associated with step ${step} is not active or you do not have permission. Cannot remove step.`,
       };
     }
 
@@ -517,15 +544,23 @@ export default class MilestoneTrackerConcept {
    *
    * @effects sets `isActive` of `goal` to `false`.
    */
-  async closeGoal(
-    { goalId }: { goalId: Goal },
-  ): Promise<Empty | { error: string }> {
+  async closeGoal({
+    goalId,
+    user,
+  }: {
+    goalId: Goal;
+    user: User;
+  }): Promise<Empty | { error: string }> {
     const targetGoal = await this.goals.findOne({
       _id: goalId,
       isActive: true,
+      user,
     });
     if (!targetGoal) {
-      return { error: `Goal ${goalId} not found or is not active.` };
+      return {
+        error:
+          `Goal ${goalId} not found, is not active, or you do not have permission.`,
+      };
     }
 
     try {
@@ -633,12 +668,21 @@ export default class MilestoneTrackerConcept {
    */
   async regenerateSteps({
     goal,
+    user,
   }: {
     goal: Goal;
+    user: User;
   }): Promise<{ steps: Step[] } | { error: string }> {
-    const targetGoal = await this.goals.findOne({ _id: goal, isActive: true });
+    const targetGoal = await this.goals.findOne({
+      _id: goal,
+      isActive: true,
+      user,
+    });
     if (!targetGoal) {
-      return { error: `Goal ${goal} not found or is not active.` };
+      return {
+        error:
+          `Goal ${goal} not found, is not active, or you do not have permission.`,
+      };
     }
     await this.steps.deleteMany({ goalId: goal });
 

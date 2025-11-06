@@ -78,8 +78,8 @@ Deno.test("Principle: Goal lifecycle and input validation (with hobby)", async (
     assertEquals(paintingGoals[0].hobby, "Painting");
 
     // Clean up
-    await milestoneTracker.closeGoal({ goalId: goalId1 });
-    await milestoneTracker.closeGoal({ goalId: goalId2 });
+    await milestoneTracker.closeGoal({ goalId: goalId1, user: userA });
+    await milestoneTracker.closeGoal({ goalId: goalId2, user: userA });
   } finally {
     await client.close();
   }
@@ -121,6 +121,7 @@ Deno.test("Action: addStep/completeStep manage manual steps and statuses", async
       const addResult = await milestoneTracker.addStep({
         goal: goalId,
         description: stepDesc,
+        user: userA,
       });
       assertEquals(
         "error" in addResult,
@@ -162,10 +163,10 @@ Deno.test("Action: addStep/completeStep manage manual steps and statuses", async
 
     // test out having completed some steps
     console.log("4. Completing steps and verifying completion");
-    await milestoneTracker.completeStep({ step: stepIds[0] });
+    await milestoneTracker.completeStep({ step: stepIds[0], user: userA });
     console.log(`   ✓ Completed step: "${steps[0]}"`);
 
-    await milestoneTracker.completeStep({ step: stepIds[1] });
+    await milestoneTracker.completeStep({ step: stepIds[1], user: userA });
     console.log(`   ✓ Completed step: "${steps[1]}"`);
 
     // verify completed and incomplete steps
@@ -203,6 +204,7 @@ Deno.test("Action: addStep/completeStep manage manual steps and statuses", async
     console.log("6. Testing re-completion of an already completed step");
     const reCompleteResult = await milestoneTracker.completeStep({
       step: stepIds[0],
+      user: userA,
     });
     assertEquals(
       "error" in reCompleteResult,
@@ -250,6 +252,7 @@ Deno.test({
       console.log("2. Generating steps using LLM");
       const generateResult = await milestoneTracker.generateSteps({
         goal: goalId,
+        user: userA,
       });
       assertEquals(
         "error" in generateResult,
@@ -328,6 +331,7 @@ Deno.test({
         const stepToRemove = details[details.length - 1].id;
         const removeResult = await milestoneTracker.removeStep({
           step: stepToRemove,
+          user: userA,
         });
         assertEquals(
           "error" in removeResult,
@@ -363,6 +367,7 @@ Deno.test("Action: robust error handling for invalid inputs and states", async (
     const invalidGoalResult = await milestoneTracker.addStep({
       goal: "goal:nonexistent" as ID,
       description: "This should fail",
+      user: userB,
     });
     assertEquals(
       "error" in invalidGoalResult,
@@ -389,6 +394,7 @@ Deno.test("Action: robust error handling for invalid inputs and states", async (
     const emptyStepResult = await milestoneTracker.addStep({
       goal: goalId,
       description: "",
+      user: userB,
     });
     assertEquals(
       "error" in emptyStepResult,
@@ -404,6 +410,7 @@ Deno.test("Action: robust error handling for invalid inputs and states", async (
     console.log("3. Testing closing a non-existent goal");
     const closeNonExistentResult = await milestoneTracker.closeGoal({
       goalId: "goal:nonexistent" as ID,
+      user: userB,
     });
     assertEquals(
       "error" in closeNonExistentResult,
@@ -418,11 +425,12 @@ Deno.test("Action: robust error handling for invalid inputs and states", async (
 
     console.log("4. Testing closing an already closed goal");
     // close the valid goal we created
-    await milestoneTracker.closeGoal({ goalId: goalId });
+    await milestoneTracker.closeGoal({ goalId: goalId, user: userB });
 
     // close it again
     const closeAgainResult = await milestoneTracker.closeGoal({
       goalId: goalId,
+      user: userB,
     });
     assertEquals(
       "error" in closeAgainResult,
@@ -438,6 +446,7 @@ Deno.test("Action: robust error handling for invalid inputs and states", async (
     console.log("5. Attempting to complete a non-existent step");
     const completeNonExistentResult = await milestoneTracker.completeStep({
       step: "step:nonexistent" as ID,
+      user: userB,
     });
     assertEquals(
       "error" in completeNonExistentResult,
@@ -476,10 +485,12 @@ Deno.test("Action: removeStep removes an incomplete step and validates constrain
     const stepA = await milestoneTracker.addStep({
       goal: goalId,
       description: "Buy watercolor paints, brushes, and paper",
+      user: userA,
     });
     const stepB = await milestoneTracker.addStep({
       goal: goalId,
       description: "Learn basic wash and blending techniques",
+      user: userA,
     });
     assertEquals("error" in stepA, false);
     assertEquals("error" in stepB, false);
@@ -488,7 +499,10 @@ Deno.test("Action: removeStep removes an incomplete step and validates constrain
     console.log(`   ✓ Added 2 steps to goal`);
 
     console.log("2. Remove one incomplete step");
-    const removeA = await milestoneTracker.removeStep({ step: stepAId });
+    const removeA = await milestoneTracker.removeStep({
+      step: stepAId,
+      user: userA,
+    });
     assertEquals(
       "error" in removeA,
       false,
@@ -503,9 +517,10 @@ Deno.test("Action: removeStep removes an incomplete step and validates constrain
     console.log("   ✓ Incomplete step removed successfully");
 
     console.log("3. Attempt to remove a completed step (should fail)");
-    await milestoneTracker.completeStep({ step: stepBId });
+    await milestoneTracker.completeStep({ step: stepBId, user: userA });
     const removeCompleted = await milestoneTracker.removeStep({
       step: stepBId,
+      user: userA,
     });
     assertEquals(
       "error" in removeCompleted,
@@ -517,6 +532,7 @@ Deno.test("Action: removeStep removes an incomplete step and validates constrain
     console.log("4. Attempt to remove a non-existent step (should fail)");
     const removeMissing = await milestoneTracker.removeStep({
       step: "step:missing" as ID,
+      user: userA,
     });
     assertEquals(
       "error" in removeMissing,
@@ -530,11 +546,13 @@ Deno.test("Action: removeStep removes an incomplete step and validates constrain
     const addC = await milestoneTracker.addStep({
       goal: goalId,
       description: "Practice gradients and color mixing",
+      user: userA,
     });
     const stepCId = (addC as { step: ID }).step;
-    await milestoneTracker.closeGoal({ goalId: goalId });
+    await milestoneTracker.closeGoal({ goalId: goalId, user: userA });
     const removeInactive = await milestoneTracker.removeStep({
       step: stepCId,
+      user: userA,
     });
     assertEquals(
       "error" in removeInactive,
@@ -572,7 +590,10 @@ Deno.test("Action: regenerateSteps deletes and regenerates steps if opted for", 
     const goalId = (createResult as { goalId: ID }).goalId;
 
     // Generate steps
-    const genResult = await milestoneTracker.generateSteps({ goal: goalId });
+    const genResult = await milestoneTracker.generateSteps({
+      goal: goalId,
+      user: userA,
+    });
     if ("error" in genResult) {
       console.error("generateSteps error:", genResult.error);
     }
@@ -582,6 +603,7 @@ Deno.test("Action: regenerateSteps deletes and regenerates steps if opted for", 
 
     const regenResult = await milestoneTracker.regenerateSteps({
       goal: goalId,
+      user: userA,
     });
     assertEquals(
       "error" in regenResult,
@@ -598,9 +620,12 @@ Deno.test("Action: regenerateSteps deletes and regenerates steps if opted for", 
     );
 
     // Complete one step
-    await milestoneTracker.completeStep({ step: newStepIds[0] });
+    await milestoneTracker.completeStep({ step: newStepIds[0], user: userA });
     // Try to regenerate again (should succeed even if a step was completed)
-    const regenAgain = await milestoneTracker.regenerateSteps({ goal: goalId });
+    const regenAgain = await milestoneTracker.regenerateSteps({
+      goal: goalId,
+      user: userA,
+    });
     assertEquals(
       "error" in regenAgain,
       false,

@@ -138,7 +138,7 @@ export const CloseGoalRequest: Sync = (
   ]),
   where: async (frames) =>
     await frames.query(Sessioning._getUser, { session }, { user }),
-  then: actions([MilestoneTracker.closeGoal, { goalId }, {}]),
+  then: actions([MilestoneTracker.closeGoal, { goalId, user }, {}]),
 });
 
 /** Responds on successful goal closure. */
@@ -147,7 +147,7 @@ export const CloseGoalResponse: Sync = ({ request }) => ({
     [Requesting.request, { path: "/MilestoneTracker/closeGoal" }, { request }],
     [MilestoneTracker.closeGoal, {}, {}],
   ),
-  then: actions([Requesting.respond, { request, msg: {} }]),
+  then: actions([Requesting.respond, { request }]),
 });
 
 /** Responds with an error if goal closure fails. */
@@ -257,6 +257,7 @@ export const AddStepRequest: Sync = (
     then: actions([MilestoneTracker.addStep, {
       goal: goalId,
       description,
+      user,
     }, { step }]),
   });
 };
@@ -281,7 +282,7 @@ export const CompleteStepRequest: Sync = (
   ]),
   where: async (frames) =>
     await frames.query(Sessioning._getUser, { session }, { user }),
-  then: actions([MilestoneTracker.completeStep, { step: stepId }, {}]),
+  then: actions([MilestoneTracker.completeStep, { step: stepId, user }, {}]),
 });
 
 /** Responds on successful step completion. */
@@ -292,7 +293,7 @@ export const CompleteStepResponse: Sync = ({ request }) => ({
     }],
     [MilestoneTracker.completeStep, {}, {}],
   ),
-  then: actions([Requesting.respond, { request, msg: {} }]),
+  then: actions([Requesting.respond, { request }]),
 });
 
 /** Responds with an error if step completion fails. */
@@ -318,7 +319,7 @@ export const RemoveStepRequest: Sync = (
     ]),
     where: async (frames) =>
       await frames.query(Sessioning._getUser, { session }, { user }),
-    then: actions([MilestoneTracker.removeStep, { step: stepId }, {}]),
+    then: actions([MilestoneTracker.removeStep, { step: stepId, user }, {}]),
   });
 };
 
@@ -328,7 +329,7 @@ export const RemoveStepResponse: Sync = ({ request }) => ({
     [Requesting.request, { path: "/MilestoneTracker/removeStep" }, { request }],
     [MilestoneTracker.removeStep, {}, {}],
   ),
-  then: actions([Requesting.respond, { request, msg: {} }]),
+  then: actions([Requesting.respond, { request }]),
 });
 
 /** Responds with an error if step removal fails. */
