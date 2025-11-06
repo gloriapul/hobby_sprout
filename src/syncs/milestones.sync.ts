@@ -10,49 +10,83 @@ import { actions, Frames, Sync } from "@engine";
 //-- Goal Management --//
 
 export const CreateGoalRequest: Sync = (
-  { request, session, hobby, description, user, goalId },
-) => {
-  console.log("[CreateGoalRequest] payload:", {
-    request,
-    session,
-    hobby,
-    description,
-    user,
-    goalId,
-  });
-  return ({
-    when: actions([
-      Requesting.request,
-      { path: "/MilestoneTracker/createGoal", session, hobby, description },
-      { request },
-    ]),
-    where: async (frames) => {
-      // Get user from session, but also pass hobby and description through
-      const userFrames = await frames.query(Sessioning._getUser, { session }, {
-        user,
-      });
-      // For each frame, add hobby and description from the original input
-      return userFrames.map((frame) => ({
-        ...frame,
-        hobby,
-        description,
-      }));
+  { request, session, hobby, description, user, goalId, autoGenerate },
+) => ({
+  when: actions([
+    Requesting.request,
+    {
+      path: "/MilestoneTracker/createGoal",
+      session,
+      hobby,
+      description,
+      autoGenerate,
     },
-    then: actions([
-      MilestoneTracker.createGoal,
-      { user, hobby, description },
-      // MilestoneTracker.createGoal must return { goalId }
-      { goalId },
-    ]),
-  });
-};
+    { request },
+  ]),
+  where: async (frames) => {
+    const userFrames = await frames.query(Sessioning._getUser, { session }, {
+      user,
+    });
+    return userFrames.map((frame) => ({
+      ...frame,
+      hobby,
+      description,
+      autoGenerate,
+    }));
+  },
+  then: actions([
+    MilestoneTracker.createGoal,
+    { user, hobby, description },
+    { goalId },
+  ]),
+});
 
-export const CreateGoalResponse: Sync = ({ request, goalId }) => ({
+// Response for when steps are auto-generated
+export const CreateGoalAndStepsResponse: Sync = (
+  { request, goalId, steps, autoGenerate },
+) => ({
   when: actions(
-    [Requesting.request, { path: "/MilestoneTracker/createGoal" }, { request }],
+    [
+      Requesting.request,
+      { path: "/MilestoneTracker/createGoal", autoGenerate: true },
+      { request },
+    ],
+    [MilestoneTracker.createGoal, {}, { goalId }],
+    [MilestoneTracker.generateSteps, { goal: goalId }, { steps }],
+  ),
+  then: actions([Requesting.respond, { request, goalId, steps }]),
+});
+
+// Response for when steps are added manually
+export const CreateGoalManualResponse: Sync = (
+  { request, goalId, autoGenerate },
+) => ({
+  when: actions(
+    [
+      Requesting.request,
+      { path: "/MilestoneTracker/createGoal", autoGenerate: false },
+      { request },
+    ],
     [MilestoneTracker.createGoal, {}, { goalId }],
   ),
   then: actions([Requesting.respond, { request, goalId }]),
+});
+
+/**
+ * @sync_name GenerateStepsAfterGoalCreated
+ * @description Automatically generates milestone steps if the autoGenerate flag is true.
+ */
+export const GenerateStepsAfterGoalCreated: Sync = (
+  { goalId, user, autoGenerate },
+) => ({
+  when: actions(
+    [
+      Requesting.request,
+      { path: "/MilestoneTracker/createGoal", autoGenerate: true },
+    ],
+    [MilestoneTracker.createGoal, { user }, { goalId }],
+  ),
+  then: actions([MilestoneTracker.generateSteps, { goal: goalId }]),
 });
 
 export const CreateGoalResponseError: Sync = ({ request, error }) => ({

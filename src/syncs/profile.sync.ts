@@ -164,7 +164,7 @@ export const CloseProfileResponseError: Sync = ({ request, session, error }) => 
 //-- Hobby Management --//
 
 export const SetHobbyRequest: Sync = (
-  { request, session, hobby, user, msg },
+  { request, session, hobby, user },
 ) => ({
   when: actions([
     Requesting.request,
@@ -173,13 +173,13 @@ export const SetHobbyRequest: Sync = (
   ]),
   where: async (frames) =>
     await frames.query(Sessioning._getUser, { session }, { user }),
-  then: actions([UserProfile.setHobby, { user, hobby }, { msg }]),
+  then: actions([UserProfile.setHobby, { user, hobby }]),
 });
 
-export const SetHobbyResponse: Sync = ({ request }) => ({
+export const SetHobbyResponse: Sync = ({ request, user, hobby }) => ({
   when: actions(
-    [Requesting.request, { path: "/UserProfile/setHobby" }, { request }],
-    [UserProfile.setHobby, {}],
+    [Requesting.request, { path: "/UserProfile/setHobby", hobby }, { request }],
+    [UserProfile.setHobby, { user, hobby }, {}],
   ),
   then: actions([Requesting.respond, { request, msg: {} }]),
 });
@@ -193,7 +193,7 @@ export const SetHobbyResponseError: Sync = ({ request, error }) => ({
 });
 
 export const CloseHobbyRequest: Sync = (
-  { request, session, hobby, user, msg },
+  { request, session, hobby, user },
 ) => ({
   when: actions([
     Requesting.request,
@@ -202,13 +202,15 @@ export const CloseHobbyRequest: Sync = (
   ]),
   where: async (frames) =>
     await frames.query(Sessioning._getUser, { session }, { user }),
-  then: actions([UserProfile.closeHobby, { user, hobby }, { msg }]),
+  then: actions([UserProfile.closeHobby, { user, hobby }]),
 });
 
-export const CloseHobbyResponse: Sync = ({ request }) => ({
+export const CloseHobbyResponse: Sync = ({ request, user, hobby }) => ({
   when: actions(
-    [Requesting.request, { path: "/UserProfile/closeHobby" }, { request }],
-    [UserProfile.closeHobby, {}],
+    [Requesting.request, { path: "/UserProfile/closeHobby", hobby }, {
+      request,
+    }],
+    [UserProfile.closeHobby, { user, hobby }, {}],
   ),
   then: actions([Requesting.respond, { request, msg: {} }]),
 });
