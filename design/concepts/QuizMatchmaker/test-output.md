@@ -4,8 +4,8 @@ Principle: User can take 5-question quiz and receive hobby match ...
 ------- output -------
 
 [Principle] Testing single quiz attempt and hobby match...
-   ✓ Hobby match generated: Team Sports
-   ✓ Hobby match stored and retrievable: Team Sports
+   ✓ Hobby match generated: Hiking
+   ✓ Hobby match stored and retrievable: Hiking
 [Principle] PASS: Single quiz attempt and hobby match
 ----- output end -----
 Principle: User can take 5-question quiz and receive hobby match ... ok (1s)
@@ -26,7 +26,7 @@ Action: should fail if answers array is not length 5 ...
    ✓ Error received: Must provide exactly 5 answers.
 [Action] PASS: Error for invalid answers array length
 ----- output end -----
-Action: should fail if answers array is not length 5 ... ok (568ms)
+Action: should fail if answers array is not length 5 ... ok (543ms)
 Action: should fail if LLM is not initialized ...
 ------- output -------
 
@@ -34,7 +34,7 @@ Action: should fail if LLM is not initialized ...
    ✓ Error received: LLM not initialized. API key might be missing or invalid.
 [Action] PASS: Error for uninitialized LLM
 ----- output end -----
-Action: should fail if LLM is not initialized ... ok (588ms)
+Action: should fail if LLM is not initialized ... ok (536ms)
 Action: should return empty array for user with no matches ...
 ------- output -------
 
@@ -42,7 +42,7 @@ Action: should return empty array for user with no matches ...
    ✓ Empty array returned for user with no matches
 [Action] PASS: Empty array for user with no matches
 ----- output end -----
-Action: should return empty array for user with no matches ... ok (597ms)
+Action: should return empty array for user with no matches ... ok (556ms)
 
 ok | 5 passed | 0 failed (4s)
 

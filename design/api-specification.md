@@ -385,7 +385,7 @@ This document provides the REST API specification for all concepts in the HobbyS
 ```json
 {
   "user": "string",
-  "name": "string"
+  "displayname": "string"
 }
 ```
 
@@ -555,8 +555,8 @@ This document provides the REST API specification for all concepts in the HobbyS
 [
   {
     "_id": "string",
-    "name": "string",
-    "image": "string"
+    "displayname": "string",
+    "profile": "string"
   }
 ]
 ```

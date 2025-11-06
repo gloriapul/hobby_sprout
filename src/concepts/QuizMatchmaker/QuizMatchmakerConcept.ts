@@ -23,8 +23,6 @@ export interface HardcodedQuestion {
 
 /**
  * HARDCODED QUIZ QUESTIONS
- * These questions define the quiz structure and are immutable.
- * The _id values are arbitrary unique strings for identification.
  */
 export const QUIZ_QUESTIONS: HardcodedQuestion[] = [
   {
@@ -131,8 +129,6 @@ export default class QuizMatchmakerConcept {
   /**
    * Action: Generates a hobby match for a user based on their quiz responses using an LLM.
    *
-   * @param user - The user taking the quiz
-   * @param answers - Array of 5 answer strings, in order of QUIZ_QUESTIONS
    * @returns An object containing the suggested matched hobby string, or an error message.
    *
    * @effects Uses an LLM to analyze the answers, generates a `matchedHobby` string, stores it, and returns it.
@@ -185,20 +181,30 @@ export default class QuizMatchmakerConcept {
   }
 
   /**
-   * Query: Retrieves the matched hobby for a specific user.
+   * Action: Deletes all hobby matches for a user.
    *
-   * @returns An array containing an object with the matched hobby string, or an error message.
-   *
-   * @requires The `user` exists and has a `HobbyMatch`.
-   * @effects Returns the `matchedHobby` for the `user`.
+   * @returns A promise that resolves to an empty object on success, or an error object if no matches were found.
+   * @effects Permanently removes all hobby match records for the specified user from the database.
    */
+  async deleteHobbyMatches(
+    { user }: { user: User },
+  ): Promise<Empty | { error: string }> {
+    const result = await this.hobbyMatches.deleteMany({ user });
+    if (result.deletedCount === 0) {
+      return { error: `No hobby matches exist for user ${user}.` };
+    }
+    return {};
+  }
+
   /**
-   * Query: Retrieves all hobby matches for a specific user, most recent first.
-   * @returns Array of matches with hobby and timestamp, or error if none found.
+   * Query: Retrieves all hobby matches for a specific user, sorted by most recent first.
+   *
+   * @returns A promise that resolves to an array of hobby match objects, each containing the match ID, hobby name, and timestamp. Returns an empty array if no matches are found.
+   * @effects Queries the database for all hobby matches associated with the given user.
    */
   async _getAllHobbyMatches(
     { user }: { user: User },
-  ): Promise<{ hobby: string; matchedAt: Date }[]> {
+  ): Promise<{ id: ID; hobby: string; matchedAt: Date }[]> {
     const matches = await this.hobbyMatches.find({ user }).sort({
       matchedAt: -1,
     }).toArray();
@@ -210,18 +216,5 @@ export default class QuizMatchmakerConcept {
       hobby: m.matchedHobby,
       matchedAt: m.matchedAt,
     }));
-  }
-
-  /**
-   * Action: Deletes all hobby matches for a user (to allow a full reset).
-   */
-  async deleteHobbyMatches(
-    { user }: { user: User },
-  ): Promise<Empty | { error: string }> {
-    const result = await this.hobbyMatches.deleteMany({ user });
-    if (result.deletedCount === 0) {
-      return { error: `No hobby matches exist for user ${user}.` };
-    }
-    return {};
   }
 }

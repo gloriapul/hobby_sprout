@@ -81,37 +81,6 @@ export const RegisterResponseError: Sync = ({ request, error }) => ({
   then: actions([Requesting.respond, { request, error }]),
 });
 
-export const DeleteUserRequest: Sync = ({ request, session, user }) => ({
-  when: actions([
-    Requesting.request,
-    { path: "/PasswordAuthentication/deleteUser", session },
-    { request },
-  ]),
-  where: async (frames) =>
-    await frames.query(Sessioning._getUser, { session }, { user }),
-  then: actions([PasswordAuthentication.deleteUser, { user }]),
-});
-
-// This sync sends a success response to the frontend after the user's authentication account is deleted.
-export const DeleteUserResponse: Sync = ({ request, user }) => ({
-  when: actions(
-    [Requesting.request, { path: "/UserProfile/closeProfile" }, { request }],
-    [UserProfile.closeProfile, { user }, {}],
-    [PasswordAuthentication.deleteUser, { user }, {}],
-  ),
-  then: actions([Requesting.respond, { request, msg: {} }]),
-});
-
-// This sync sends an error response to the frontend if the user's authentication account deletion fails.
-export const DeleteUserErrorResponse: Sync = ({ request, user, error }) => ({
-  when: actions(
-    [Requesting.request, { path: "/UserProfile/closeProfile" }, { request }],
-    [UserProfile.closeProfile, { user }, {}],
-    [PasswordAuthentication.deleteUser, { user }, { error }],
-  ),
-  then: actions([Requesting.respond, { request, msg: { error } }]),
-});
-
 // Automatically create a user profile after successful registration
 export const CreateProfileAfterRegister: Sync = ({ user }) => ({
   when: actions([PasswordAuthentication.register, {}, { user }]),

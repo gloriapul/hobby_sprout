@@ -10,7 +10,7 @@ import { actions, Frames, Sync } from "@engine";
 //-- Quiz & Matching --//
 
 export const GenerateHobbyMatchRequest: Sync = (
-  { request, session, answers, user, hobby },
+  { request, session, answers, user, matchedHobby },
 ) => ({
   when: actions([
     Requesting.request,
@@ -20,7 +20,7 @@ export const GenerateHobbyMatchRequest: Sync = (
   where: async (frames) =>
     await frames.query(Sessioning._getUser, { session }, { user }),
   then: actions([QuizMatchmaker.generateHobbyMatch, { user, answers }, {
-    hobby,
+    matchedHobby,
   }]),
 });
 

@@ -190,28 +190,13 @@ export default class MilestoneTrackerConcept {
    * for each generated description, creates a new `Step` associated with `goal`, sets `description`,
    * `start` (current date), and `isComplete` to `false`; returns the IDs of the created `Steps` as an array `steps`.
    */
-  async generateSteps({
-    goal,
-  }: {
-    goal: Goal;
-  }): Promise<{ steps: Step[] } | { error: string }> {
-    const targetGoal = await this.goals.findOne({ _id: goal, isActive: true });
-    if (!targetGoal) {
-      return { error: `Goal ${goal} not found or is not active.` };
-    }
-
-    // check if set of steps already exist for this goal
-    const existingStepsCount = await this.steps.countDocuments({
-      goalId: goal,
-    });
-    if (existingStepsCount > 0) {
-      return {
-        error:
-          `Steps already exist for goal ${goal}. Cannot generate new ones.`,
-      };
-    }
-
-    // check if LLM is initialized
+  /**
+   * Helper: generates steps for a goal using the LLM.
+   */
+  private async _generateStepsFromLLM(
+    goal: Goal,
+    targetGoal: GoalDoc,
+  ): Promise<{ steps: Step[] } | { error: string }> {
     if (!this.llm) {
       return {
         error: "LLM not initialized. API key might be missing or invalid.",
@@ -262,7 +247,6 @@ export default class MilestoneTrackerConcept {
         };
       }
 
-      // step quality
       const validationError = this.validateStepQuality(stepDescriptions);
       if (validationError) {
         return { error: validationError };
@@ -290,6 +274,36 @@ export default class MilestoneTrackerConcept {
       }
       return { error: llmErrorMessage };
     }
+  }
+
+  /**
+   * generateSteps (goal: Goal): (steps: Step[])
+   *
+   * @requires `goal` exists and is active; no `Steps` are currently associated with this `goal`.
+   *
+   * @effects uses gemini LLM to generate `Step` descriptions based on the `goal`'s description;
+   * for each generated description, creates a new `Step` associated with `goal`, sets `description`,
+   * `start` (current date), and `isComplete` to `false`; returns the IDs of the created `Steps` as an array `steps`.
+   */
+  async generateSteps(
+    { goal }: { goal: Goal },
+  ): Promise<{ steps: Step[] } | { error: string }> {
+    const targetGoal = await this.goals.findOne({ _id: goal, isActive: true });
+    if (!targetGoal) {
+      return { error: `Goal ${goal} not found or is not active.` };
+    }
+
+    const existingStepsCount = await this.steps.countDocuments({
+      goalId: goal,
+    });
+    if (existingStepsCount > 0) {
+      return {
+        error:
+          `Steps already exist for goal ${goal}. Cannot generate new ones.`,
+      };
+    }
+
+    return this._generateStepsFromLLM(goal, targetGoal);
   }
 
   /**
@@ -398,14 +412,14 @@ export default class MilestoneTrackerConcept {
    * @effects deletes the `step` document from storage.
    */
   async removeStep(
-    { stepId }: { stepId: Step },
+    { step }: { step: Step },
   ): Promise<Empty | { error: string }> {
-    const targetStep = await this.steps.findOne({ _id: stepId });
+    const targetStep = await this.steps.findOne({ _id: step });
     if (!targetStep) {
-      return { error: `Step ${stepId} not found.` };
+      return { error: `Step ${step} not found.` };
     }
     if (targetStep.isComplete) {
-      return { error: `Cannot remove completed step ${stepId}.` };
+      return { error: `Cannot remove completed step ${step}.` };
     }
 
     const targetGoal = await this.goals.findOne({
@@ -415,14 +429,14 @@ export default class MilestoneTrackerConcept {
     if (!targetGoal) {
       return {
         error:
-          `Goal associated with step ${stepId} is not active. Cannot remove step.`,
+          `Goal associated with step ${step} is not active. Cannot remove step.`,
       };
     }
 
     try {
-      const res = await this.steps.deleteOne({ _id: stepId });
+      const res = await this.steps.deleteOne({ _id: step });
       if (res.deletedCount !== 1) {
-        return { error: `Failed to remove step ${stepId}.` };
+        return { error: `Failed to remove step ${step}.` };
       }
       return {};
     } catch (e) {
@@ -565,74 +579,7 @@ export default class MilestoneTrackerConcept {
       return { error: `Goal ${goal} not found or is not active.` };
     }
     await this.steps.deleteMany({ goalId: goal });
-    // Now generate new steps using the same logic as generateSteps
-    if (!this.llm) {
-      return {
-        error: "LLM not initialized. API key might be missing or invalid.",
-      };
-    }
-    try {
-      const llmPrompt = `
-        You are a helpful AI assistant that creates a recommended plan of clear steps for people looking to work on a hobby.
 
-        The user's hobby is: "${targetGoal.hobby}"
-        Create a structured step-by-step plan for this goal: "${targetGoal.description}"
-
-        Response Requirements:
-        1. Return ONLY a single-line JSON array of strings
-        2. Each string should be a specific, complete, measurable, and actionable step
-        3. Steps must be relevant to the hobby and the goal, and feasible for an average person (not overly ambitious or vague)
-        4. Only contain necessary steps to achieve the goal, avoid filler steps and be mindful of number of steps generated
-        5. Steps must be in logical order
-        6. Do NOT use line breaks or extra whitespace
-        7. Properly escape any quotes in the text
-        8. No step numbers or prefixes
-        9. No comments or explanations
-
-        Example response format:
-        ["Research camera settings and features","Practice taking photos in different lighting","Review and organize test shots"]
-
-        Return ONLY the JSON array, nothing else.`;
-
-      const responseText = await this.llm.executeLLM(llmPrompt);
-      let stepDescriptions: string[];
-      try {
-        stepDescriptions = JSON.parse(responseText);
-      } catch (_parseError) {
-        return { error: "Failed to parse LLM response as JSON array." };
-      }
-      if (
-        !Array.isArray(stepDescriptions) ||
-        stepDescriptions.some((d) => typeof d !== "string")
-      ) {
-        return {
-          error:
-            "LLM returned invalid step format. Expected a JSON array of strings.",
-        };
-      }
-      const validationError = this.validateStepQuality(stepDescriptions);
-      if (validationError) {
-        return { error: validationError };
-      }
-      const newStepDocs: StepDoc[] = stepDescriptions.map((desc) => ({
-        _id: freshID(),
-        goalId: goal,
-        description: desc.trim(),
-        start: new Date(),
-        isComplete: false,
-      }));
-      if (newStepDocs.length > 0) {
-        await this.steps.insertMany(newStepDocs);
-      }
-      return { steps: newStepDocs.map((s) => s._id) };
-    } catch (e: unknown) {
-      let llmErrorMessage = "LLM regeneration failed.";
-      if (typeof e === "object" && e !== null && "message" in e) {
-        llmErrorMessage = `Failed to regenerate steps: ${e.message}`;
-      } else if (typeof e === "string") {
-        llmErrorMessage = `Failed to regenerate steps: ${e}`;
-      }
-      return { error: llmErrorMessage };
-    }
+    return this._generateStepsFromLLM(goal, targetGoal);
   }
 }

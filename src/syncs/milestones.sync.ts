@@ -274,7 +274,7 @@ export const CompleteStepRequest: Sync = (
   ]),
   where: async (frames) =>
     await frames.query(Sessioning._getUser, { session }, { user }),
-  then: actions([MilestoneTracker.completeStep, { user, step: stepId }, {}]),
+  then: actions([MilestoneTracker.completeStep, { step: stepId }, {}]),
 });
 
 export const CompleteStepResponse: Sync = ({ request }) => ({
@@ -308,7 +308,7 @@ export const RemoveStepRequest: Sync = (
     ]),
     where: async (frames) =>
       await frames.query(Sessioning._getUser, { session }, { user }),
-    then: actions([MilestoneTracker.removeStep, { stepId }, {}]),
+    then: actions([MilestoneTracker.removeStep, { step: stepId }, {}]),
   });
 };
 

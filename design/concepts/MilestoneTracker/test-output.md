@@ -1,6 +1,6 @@
 # Test Results for MilestoneTracker Concept
 
-Principle: Goal lifecycle and input validation (with hobby) ... ok (1s)
+Principle: Goal lifecycle and input validation (with hobby) ... ok (996ms)
 Action: addStep/completeStep manage manual steps and statuses ...
 ------- output -------
 1. Creating a goal for step management
@@ -30,21 +30,19 @@ Action: generateSteps produces quality steps via LLM ...
 2. Generating steps using LLM
 3. Received steps from the LLM
 4. Listing generated steps
-   1. Define your podcast's niche within world issues and target audience
-   2. Outline the format and style of your podcast (e.g., interview, solo narration, panel discussion)
-   3. Research and select reliable sources for world issue information
-   4. Develop a content calendar for your first 5-10 episodes
-   5. Learn the basics of audio recording and editing software
-   6. Acquire a decent microphone and headphones
-   7. Record and edit your first pilot episode
-   8. Get feedback on your pilot episode from trusted sources
-   9. Refine your recording and editing process based on feedback
-   10. Choose a podcast hosting platform
-   11. Create cover art and descriptive show notes for your podcast
-   12. Publish your first episode and promote it through social media and relevant communities
-   ✓ All 12 generated steps pass quality validation
+   1. Define the specific niche and target audience for your world issues podcast
+   2. Outline the format, structure, and episode length for your podcast
+   3. Research and identify reliable sources for accurate world issue information
+   4. Develop a content calendar with potential episode topics and guests
+   5. Acquire basic podcasting equipment including a microphone and headphones
+   6. Learn fundamental audio recording and editing techniques using free or affordable software
+   7. Practice recording and editing sample episodes to refine your skills
+   8. Create compelling show notes and episode titles that attract listeners
+   9. Choose a podcast hosting platform and submit your podcast to major directories
+   10. Promote your podcast on social media and relevant online communities
+   ✓ All 10 generated steps pass quality validation
 5. Removing one generated step
-   ✓ Removed one generated step; 11 remaining
+   ✓ Removed one generated step; 9 remaining
 5. Action requirements satisfied: LLM-generated steps meet quality criteria
 ----- output end -----
 Action: generateSteps produces quality steps via LLM ... ok (2s)
@@ -57,12 +55,12 @@ Action: robust error handling for invalid inputs and states ...
 3. Testing closing a non-existent goal
    - Expected error received: "Goal goal:nonexistent not found or is not active."
 4. Testing closing an already closed goal
-   - Expected error received: "Goal 019a4b15-d49b-7b6f-9208-53ceb31b0bca not found or is not active."
+   - Expected error received: "Goal 019a5b58-7a7a-7778-a22c-193568178826 not found or is not active."
 5. Attempting to complete a non-existent step
    - Expected error received: "Step step:nonexistent not found."
 6. Action requirements satisfied: Invalid inputs and edge cases are handled correctly
 ----- output end -----
-Action: robust error handling for invalid inputs and states ... ok (934ms)
+Action: robust error handling for invalid inputs and states ... ok (794ms)
 Action: removeStep removes an incomplete step and validates constraints ...
 ------- output -------
 1. Create goal and add steps
@@ -81,7 +79,7 @@ Action: removeStep removes an incomplete step and validates constraints ...
 Action: removeStep removes an incomplete step and validates constraints ... ok (1s)
 Action: regenerateSteps deletes and regenerates steps if opted for ... ok (4s)
 
-ok | 6 passed | 0 failed (11s)
+ok | 6 passed | 0 failed (10s)
 
 ## Summary
 - Goal lifecycle fully supported with validation for creation, duplication, and closure

@@ -318,7 +318,7 @@ Deno.test({
         console.log("5. Removing one generated step");
         const stepToRemove = details[details.length - 1].id;
         const removeResult = await milestoneTracker.removeStep({
-          stepId: stepToRemove,
+          step: stepToRemove,
         });
         assertEquals(
           "error" in removeResult,
@@ -479,7 +479,7 @@ Deno.test("Action: removeStep removes an incomplete step and validates constrain
     console.log(`   ✓ Added 2 steps to goal`);
 
     console.log("2. Remove one incomplete step");
-    const removeA = await milestoneTracker.removeStep({ stepId: stepAId });
+    const removeA = await milestoneTracker.removeStep({ step: stepAId });
     assertEquals(
       "error" in removeA,
       false,
@@ -496,7 +496,7 @@ Deno.test("Action: removeStep removes an incomplete step and validates constrain
     console.log("3. Attempt to remove a completed step (should fail)");
     await milestoneTracker.completeStep({ step: stepBId });
     const removeCompleted = await milestoneTracker.removeStep({
-      stepId: stepBId,
+      step: stepBId,
     });
     assertEquals(
       "error" in removeCompleted,
@@ -507,7 +507,7 @@ Deno.test("Action: removeStep removes an incomplete step and validates constrain
 
     console.log("4. Attempt to remove a non-existent step (should fail)");
     const removeMissing = await milestoneTracker.removeStep({
-      stepId: "step:missing" as ID,
+      step: "step:missing" as ID,
     });
     assertEquals(
       "error" in removeMissing,
@@ -525,7 +525,7 @@ Deno.test("Action: removeStep removes an incomplete step and validates constrain
     const stepCId = (addC as { step: ID }).step;
     await milestoneTracker.closeGoal({ goalId: goalId });
     const removeInactive = await milestoneTracker.removeStep({
-      stepId: stepCId,
+      step: stepCId,
     });
     assertEquals(
       "error" in removeInactive,

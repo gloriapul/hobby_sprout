@@ -8,36 +8,22 @@
 # response:
 
 *   **concept**: PasswordAuthentication
-*   **purpose**: Associate usernames and passwords with user identities for authentication purposes, thereby limiting access to known users.
+*   **purpose**: associate usernames and passwords with user identities for authentication purposes, thereby limiting access to known users.
 *   **principle**: If a user registers with a unique username and a password, they can subsequently authenticate with that same username and password, and will consistently be treated as the same user.
 *   **state**:
     *   A set of `Users` with
         *   a `username` of type `String`
         *   a `passwordHash` of type `String` (hashed using SHA-256)
 *   **actions**:
-    *   `register(username: String, password: String): (user: User)`
+    *   `register(username: String, password: String): ({ user: User } | { error: String })`
         *   **requires**: No `User` with the given `username` already exists.
-        *   **effects**: Creates a new `User` instance; sets that user's username to `username` and stores a hash of the `password` for that user; returns the user ID.
-    
-    *   `register(username: String, password: String): (error: String)`
-        *   **requires**: A `User` with the given `username` already exists.
-        *   **effects**: Returns an error message indicating the username is taken.
-    
-    *   `authenticate(username: String, password: String): (user: User)`
-        *   **requires**: A `User` with the given `username` exists AND the hash of the `password` matches the stored `passwordHash` for that user.
-        *   **effects**: Returns the identifier of the authenticated `User` as `user`.
-    
-    *   `authenticate(username: String, password: String): (error: String)`
-        *   **requires**: A `User` with the given `username` does NOT exist OR the hash of the `password` does NOT match the stored `passwordHash`.
-        *   **effects**: Returns an error message indicating invalid credentials (e.g., "Invalid username or password.").
-    
-    *   `deleteUser(user: User): ()`
+        *   **effects**: Creates a new `User`, stores a hash of the `password`, and returns the new user's ID. On failure, returns an error.
+    *   `authenticate(username: String, password: String): ({ user: User } | { error: String })`
+        *   **requires**: A `User` with the given `username` exists AND the hash of the `password` matches the stored `passwordHash`.
+        *   **effects**: Returns the identifier of the authenticated `User`. On failure, returns an error.
+    *   `deleteUser(user: User): ({} | { error: String })`
         *   **requires**: A `User` with the given `user` ID exists.
-        *   **effects**: Permanently deletes the `User` and their stored credentials from the database.
-    
-    *   `deleteUser(user: User): (error: String)`
-        *   **requires**: A `User` with the given `user` ID does NOT exist.
-        *   **effects**: Returns an error message indicating the user was not found.
+        *   **effects**: Permanently deletes the `User` and their stored credentials. On failure, returns an error.
 
 # file: src/PasswordAuthentication/PasswordAuthenticationConcept.ts
 

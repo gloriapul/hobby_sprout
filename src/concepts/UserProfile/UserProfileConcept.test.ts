@@ -46,13 +46,14 @@ Deno.test("Principle: User creates profile, adds personal information", async ()
     console.log("4. Verifying user profile information");
     const profileResult = await profileConcept._getUserProfile({ user: userA });
     assertEquals(
-      "error" in profileResult,
-      false,
-      "Getting profile should succeed",
+      profileResult.length,
+      1,
+      "Getting profile should succeed and return one profile",
     );
-    if (!("error" in profileResult)) {
-      assertEquals(profileResult[0].displayname, "HobbyEnthusiast");
-      assertEquals(profileResult[0].profile, "https://example.com/profile.jpg");
+    if (profileResult.length > 0) {
+      const userProfile = profileResult[0].userProfile;
+      assertEquals(userProfile.displayname, "HobbyEnthusiast");
+      assertEquals(userProfile.profile, "https://example.com/profile.jpg");
       console.log(
         `   ✓ Profile verification successful: User has correct name and image`,
       );
