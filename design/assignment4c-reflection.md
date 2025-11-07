@@ -1,40 +1,31 @@
 # Assignment 4c Reflection
 
-This project was a comprehensive and challenging journey that provided deep, practical insights into full-stack application development, particularly concerning backend security and architecture.
+This project was a challenging but ultimately positive journey that gave me a deeper look into full-stack application web development.
 
 ### What was hard or easy?
 
--   **Hardest Part:** The most challenging aspect was grasping the conceptual shift from a frontend-driven application to a secure, backend-authoritative system. Understanding the subtle but critical difference between authentication (who you are) and authorization (what you're allowed to do) was a major learning curve. Debugging the server startup failure caused by a dependency issue in Hono was also difficult, as it required understanding the nuances of Deno's package management.
+-   **Hardest Part:** The integration of my front and backend was a very tedious process. In general, backend was hard since I have had less experience with it. The syncs in particular in this final assignment required a lot of time for me to reflect on to understand how to break down each sync and how they all work together to make the app what it is. 
 
--   **Easiest Part:** Once the core security pattern was established—using a `where` clause in a sync to query the `Sessioning` concept—applying this "lock" to all the other protected routes became a straightforward and repeatable process. The modular, concept-based architecture made it very easy to locate and update specific pieces of business logic.
+-   **Easiest Part:** The easiest part of this assignment was frontend for me as I have had experience there. I enjoyed doing the visual study and narrowing down what the appearance of my application should be. 
 
 ### What went well?
 
-The process of identifying and fixing the major security vulnerability in the `MilestoneTracker` concept was a huge success. It was a practical, high-stakes demonstration of why backend security is so important. The collaboration with the agentic coding tool to systematically refactor the backend—updating the concept, then the syncs, then the API documentation—was very effective and efficient.
+Other than generally frontend, the initial coding of my concept actions went well. Having those concept specifications we had made early on and received feedback on helped a lot when transferring into a code version.  
 
 ### Mistakes Made and Future Prevention
 
--   **Mistake:** The biggest mistake was the initial design that trusted the frontend to send a correct `user` ID. This is a classic Insecure Direct Object Reference (IDOR) vulnerability that left all user data exposed.
+-   **Mistake:** A key mistake in the initial design was underestimating the complexity required on the backend to support what seemed like relatively simple features. Especially when I first started with the syncs, I struggled with using an agentic coding tool and it changing around for instance, arrays to dictionaries. 
 
--   **Prevention:** In the future, I will approach all API design with a "zero-trust" policy from the very beginning. Any API endpoint that creates, reads, updates, or deletes user-specific data will be designed to be protected by a server-side authentication and authorization mechanism (like session tokens) by default. The client will never be trusted with determining user identity for a protected action.
+-   **Prevention:** After working on my first sync, I continued to see the importance of small changes. Doing one sync at a time was helpful and in general, moving in steps, is a good tip for the future. 
 
 ### Skills Acquired
 
--   **Backend Security:** I gained a profound, hands-on understanding of implementing session-based authentication and authorization. I can now confidently design and build secure backends that protect user data.
--   **Concept-Sync Architecture:** I learned how to leverage a declarative synchronization engine to orchestrate complex backend workflows (like the login process) and enforce security rules in a clean, maintainable way.
--   **Dependency Management:** I learned a valuable lesson in the importance of pinning exact dependency versions (e.g., in `deno.json`) to prevent unexpected breaking changes from minor or patch updates in the ecosystem.
+-   **Backend:** I gained many skills when it came to backend code. I appreciated how we first did the concepts and then introduced syncs. I also learned about deno, which is a cool tool for future use. Considering security was also pretty new to me and I appreciated learning about how to make my app more secure, especially with session ids. Backend code writing is definitely something I still need to work on as I think about the different types of apps I could work on. It would be interesting to learn more about web scraping.
 
-### Use of an Agentic Coding Tool
+-   **Testing:** I had not thought about testing in such depth. These assignments were extremely important for me to develop testing skills, including knowing best ways to break down tests, incorporating print statements, and knowing how to even set them up. 
 
-The agentic coding tool (GitHub Copilot) was used as an interactive "pair programmer" and expert consultant.
--   It was instrumental in **identifying the security flaw** and explaining its severity.
--   It **proposed a detailed, multi-step plan** for the fix and then helped execute the necessary code changes across multiple files (`MilestoneTrackerConcept.ts`, `milestones.sync.ts`, `api-specification.md`, `passthrough.ts`).
--   It acted as a **Socratic partner**, answering questions and clarifying complex topics like the difference between authentication and authorization, and the secure flow of a session token.
--   It also helped **debug technical issues**, such as the server dependency problem, by diagnosing the likely cause and suggesting a solution.
+-   **UI/UX:** It was a new way of thinking to put myself in the user's shoes. 
 
-### Conclusions on the Role of LLMs in Software Development
+### Use of an Agentic Coding Tool & Conclusions on the Role of LLMs in Software Development
 
-This experience has shown me that LLMs are transformative tools for software development, but they are not replacements for developers. Their most effective role is that of a force multiplier.
--   **Strengths:** They are exceptional at pattern recognition (identifying architectural flaws), generating boilerplate code (like the logout sync), explaining complex concepts on demand, and accelerating debugging.
--   **Limitations:** They can make mistakes, get stuck in loops, and sometimes require very specific guidance to execute a task correctly, as seen with the repeated tool failures when editing files.
--   **Conclusion:** The ideal workflow is a tight, collaborative loop. The developer provides the strategic direction, domain knowledge, and critical thinking, while the LLM provides the raw coding speed, pattern matching, and instant access to a vast knowledge base. The developer's role shifts slightly from pure implementation to that of a strategist and a verifier, guiding the powerful tool to the correct outcome.
+I used Context to help me set up my concepts and for saving them. I also used Github Copilot as a pair programmer. Initially, I was skeptical about using LLMs since this was my first time using them for coding beyond basic questions. It turned out to be a good experience though. They are helpful for speed since they are good at identifying patterns and for avoiding small bugs that can take a long time to debug. It was challenging when an LLM would repeat an incorrect answer even with additional instructions. The role of LLMs in software development will likely continue to grow and this project was helpful for letting me see all the LLMs have to offer!
