@@ -59,7 +59,7 @@ export const SetNameRequest: Sync = (
 export const SetNameResponse: Sync = ({ request }) => ({
   when: actions(
     [Requesting.request, { path: "/UserProfile/setName" }, { request }],
-    [UserProfile.setName, {}],
+    [UserProfile.setName, {}, {}],
   ),
   then: actions([Requesting.respond, { request, msg: {} }]),
 });
@@ -91,7 +91,7 @@ export const SetImageRequest: Sync = (
 export const SetImageResponse: Sync = ({ request }) => ({
   when: actions(
     [Requesting.request, { path: "/UserProfile/setImage" }, { request }],
-    [UserProfile.setImage, {}],
+    [UserProfile.setImage, {}, {}],
   ),
   then: actions([Requesting.respond, { request, msg: {} }]),
 });
