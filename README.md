@@ -20,7 +20,10 @@ This repository contains the backend server for the HobbySprout application, bui
 ### Reflection
 - [Assignment 4c Reflection](design/assignment4c-reflection.md)
 
----
+
+### Trace
+- [Render Trace](design/render-trace.md)
+
 
 ## Project Setup
 
