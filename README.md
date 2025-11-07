@@ -1,92 +1,70 @@
-# 6.104 Assignment 4: Implementing Concepts
+# HobbySprout Backend
+
+This repository contains the backend server for the HobbySprout application, built with Deno, TypeScript, and MongoDB.
 
 [6.104 Portfolio](https://github.com/gloriapul/61040-portfolio)
 
-[Assignment 3 Milestone Tracker Implementation](https://github.com/gloriapul/hobbysprout/blob/main/milestones.ts)
+## Design Documentation
 
-# Concept Implementations
+### Concept Specifications
+- [PasswordAuthentication](design/concepts/PasswordAuthentication/PasswordAuthentication.md): Secure user authentication.
+- [UserProfile](design/concepts/UserProfile/UserProfile.md): Manage user profile information and hobbies.
+- [QuizMatchmaker](design/concepts/QuizMatchmaker/QuizMatchmaker.md): Match users with hobbies based on personality.
+- [MilestoneTracker](design/concepts/MilestoneTracker/MilestoneTracker.md): Track progress on hobby-related goals.
 
-## PasswordAuth
-- Purpose: Secure user authentication
-- [PasswordAuthentication Design](design/concepts/PasswordAuthentication/PasswordAuthentication.md)
+### Design Evolution
+- [Initial Design Changes](design/design-changes.md)
+- [Changes After Assignment 4b](design/assignment4b-design-changes.md)
+- [Final Design Document Assignment 4c](design/assignment4c-final-design-doc.md)
 
-## UserProfile
-- Purpose: Manage user profile information and hobbies
-- [UserProfile Design](design/concepts/UserProfile/UserProfile.md)
+### Reflection
+- [Assignment 4c Reflection](design/assignment4c-reflection.md)
 
-## QuizMatchmaker 
-- Purpose: Match users with hobbies based on personality
-- [QuizMatchmaker Design](design/concepts/QuizMatchmaker/QuizMatchmaker.md)
+---
 
-## MilestoneTracker
-- Purpose: Track progress on hobby-related goals through steps
-- [MilestoneTracker Design](design/concepts/MilestoneTracker/MilestoneTracker.md)
+## Project Setup
 
-## Overall Design Changes
-- [Changes](design/design-changes.md)
-- [Changes Post Assignment 4b](design/assignment4b-design-changes.md)
+Follow these steps to get the backend running locally.
 
-# Setup
+### 1. Prerequisites
+- **Fork this repository**: [Fork the repo](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo#forking-a-repository) and clone it to your local machine.
+- **Install Deno**: Follow the instructions on the [official Deno website](https://deno.com). We recommend installing the [Deno VS Code extension](https://marketplace.visualstudio.com/items?itemName=denoland.vscode-deno) as well.
 
-## 0. Fork this repository
+### 2. Environment Configuration
+- **Create a `.env` file**: Copy the `.env.template` file to a new file named `.env`.
+  ```shell
+  cp .env.template .env
+  ```
+- **Set up Gemini API Key**:
+  - Get your API key from [Google AI Studio](https://ai.google.dev/).
+  - Add it to your `.env` file:
+    ```env
+    GEMINI_API_KEY=YOUR_KEY_HERE
+    ```
+- **Set up MongoDB**:
+  - Create a free M0 cluster on [MongoDB Atlas](https://www.mongodb.com/cloud/atlas/register).
+  - In the "Security Quickstart", ensure you allow network access from anywhere by adding the IP address `0.0.0.0/0`.
+  - Get your connection string by clicking **CONNECT** -> **Drivers**.
+  - Add the connection string and a database name to your `.env` file. Remember to replace `<password>` with your actual database user password.
+    ```env
+    MONGODB_URL=mongodb+srv://<username>:<password>@cluster0.p82ijqd.mongodb.net/?retryWrites=true&w=majority
+    DB_NAME=my-hobbysprout-db
+    ```
 
-First, [fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo#forking-a-repository) this repository, and **rename** it to your desired project name, and give a description of your project.
+---
 
-## 1. Install Deno
+## Running the Project
 
-[Install from Deno's website](https://deno.com)
-
-Deno is a successor to Node.js (by the same creator, Ryan Dahl) that greatly simplifies tooling, is more secure by default, and is backwards-compatible with the larger ecosystem. Check out Deno's [extensive documentation](https://docs.deno.com/runtime/) for various helpful guides on a wide variety of common application needs and [integrations](https://docs.deno.com/examples/).
-
-**Note:** when importing from `npm` packages, prefix with `npm:` as in: 
-```typescript
-import { MongoClient } from "npm:mongo"
-```
-
-For VSCode users, consider also installing the Deno [extension](https://marketplace.visualstudio.com/items?itemName=denoland.vscode-deno) and referring to the [docs](https://docs.deno.com/runtime/reference/vscode/) if you'd like to configure behavior.
-## 2. Compile Context
-
-To create a convenient binary, run the following command from the root of the directory:
+### 1. Build the Project
+This command generates necessary import files for the concepts. You should run this once after the initial setup.
 ```shell
-deno compile -A --output ctx .ctx/context.ts
+deno run build
 ```
 
-## 3. Setup Gemini
-
-Copy or change `.env.template` to the environment file: `.env` and insert your Gemini API key:
-
-```env
-GEMINI_API_KEY=YOUR_KEY_HERE
-GEMINI_MODEL=gemini-2.5-flash
+### 2. Start the Server
+This command starts the backend API server.
+```shell
+deno run start
 ```
-You can choose any [models](https://ai.google.dev/gemini-api/docs/models) using `GEMINI_MODEL`, such as `gemini-2.5-flash-lite` for faster responses, or `gemini-2.5-pro` for higher quality.
+The server will now be running and listening for requests on the configured port (the default is 8000).
 
-You may also edit the `./geminiConfig.json` file to change the parameters according to any of the [GenerationConfig](https://ai.google.dev/api/generate-content#v1beta.GenerationConfig) options, including turning on/off thinking, limiting tokens, etc.
-
-## 4. Setup your MongoDB Atlas Cluster (free)
-
-For this project, we'll be using MongoDB as the database. To get started, use either the slides or the instructions:
-### Slides
-[MongoDB Setup](https://docs.google.com/presentation/d/1DBOWIQ2AAGQPDRgmnad8wN9S9M955LcHYZQlnbu-QCs/edit?usp=sharing)
-### Instructions
-1. Create your [MongoDB Atlas](https://www.mongodb.com/cloud/atlas/register) account.
-2. When selecting a template, choose the __free__ option, M0.
-4. At the Security Quickstart page, select how you want to authenticate your connection and keep the rest of the defaults. Make sure to allow access to all IPs as shown in [this slide](https://docs.google.com/presentation/d/1DBOWIQ2AAGQPDRgmnad8wN9S9M955LcHYZQlnbu-QCs/edit?usp=sharing).
-5. Once created, click the __CONNECT__ button, select __driver__, and copy the srv connection string. If using username and password, the url should look something like this: `mongodb+srv://<username>:<password>@cluster0.p82ijqd.mongodb.net/?retryWrites=true&w=majority`. Make sure to replace username and password with your actual values.
-6. Add your connection url (without `<` and `>`) to `MONGODB_URL=<connection url>` to your `.env` file. 
-7. Give your database a name under `DB_NAME=<your database name>`.
-
-## 5. Install Obsidian
-
-[Obsidian](https://obsidian.md)
-
-Obsidian is an open-source Markdown editor and personal knowledge management solution. The Context tool **does not** require use of Obsidian, and you may use any preferred editor, but we highly recommend using Obsidian to navigate your assignment and the generated context to write, view, and structure your prompts and design documents. 
-
-### Link settings
-
-This should be correctly set already, but under Obsidian -> Settings -> Files and links, make sure that:
-1. `New link format` is set to `Relative path to file`
-2. `Use [[Wikilinks]]` is disabled
-3. `Detect all file extensions` is enabled (so you can easily view code and drop links to code files)
-
-![](media/obsidian_settings.png)
