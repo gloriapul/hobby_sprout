@@ -25,11 +25,7 @@
  */
 
 export const inclusions: Record<string, string> = {
-  // PasswordAuthentication - public actions for registration
-  "/api/PasswordAuthentication/register":
-    "public action - anyone can register to join the platform",
-  "/api/PasswordAuthentication/authenticate":
-    "public action - anyone can authenticate as they choose",
+  // No public passthroughs for registration/authentication; all go through syncs
 };
 
 /**
@@ -43,6 +39,9 @@ export const inclusions: Record<string, string> = {
  */
 
 export const exclusions: Array<string> = [
+  // PasswordAuthentication - force registration and authentication through syncs
+  "/api/PasswordAuthentication/register",
+  "/api/PasswordAuthentication/authenticate",
   // PasswordAuthentication - all routes except register go through syncs
   "/api/PasswordAuthentication/deleteUser",
   "/api/PasswordAuthentication/_getUser",

@@ -48,6 +48,12 @@ export default class SessioningConcept {
       user,
     });
 
+    console.log(
+      "[Sessioning.start] Created session",
+      newSession,
+      "for user",
+      user,
+    );
     return { session: newSession };
   }
 

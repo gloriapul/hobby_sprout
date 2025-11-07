@@ -189,14 +189,20 @@ export class SyncConcept {
       }
       let thenStep = 0;
       for (const then of sync.then) {
-        if (sync.sync === "Login" || sync.sync === "Register") {
+        if (
+          typeof sync.sync === "string" &&
+          (sync.sync.includes("Login") || sync.sync.includes("Register"))
+        ) {
           console.log(
             `[DEBUG] Frame at then step ${thenStep}:`,
             JSON.stringify(frame),
           );
         }
         const matched = this.matchThen(then, frame);
-        if (sync.sync === "Login" || sync.sync === "Register") {
+        if (
+          typeof sync.sync === "string" &&
+          (sync.sync.includes("Login") || sync.sync.includes("Register"))
+        ) {
           console.log(
             `[DEBUG] After matchThen (step ${thenStep}):`,
             JSON.stringify(matched),
