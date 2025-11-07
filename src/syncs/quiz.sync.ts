@@ -15,7 +15,7 @@ export const GenerateHobbyMatchRequest: Sync = (
 ) => ({
   when: actions([
     Requesting.request,
-    { path: "/QuizMatchmaker/generateHobbyMatch", session, answers },
+    { path: "/QuizMatchmaker/generateHobbyMatch", answers },
     { request },
   ]),
   where: async (frames) =>
@@ -55,7 +55,7 @@ export const DeleteHobbyMatchesRequest: Sync = (
 ) => ({
   when: actions([
     Requesting.request,
-    { path: "/QuizMatchmaker/deleteHobbyMatches", session },
+    { path: "/QuizMatchmaker/deleteHobbyMatches" },
     { request },
   ]),
   where: async (frames) =>
@@ -93,8 +93,7 @@ export const GetAllHobbyMatchesRequest: Sync = (
 ) => ({
   when: actions([
     Requesting.request,
-    { path: "/QuizMatchmaker/_getAllHobbyMatches", session },
-    { request },
+    { path: "/QuizMatchmaker/_getAllHobbyMatches", session, request },
   ]),
   where: async (frames) => {
     const originalFrame = frames[0];

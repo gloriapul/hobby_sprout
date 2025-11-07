@@ -131,7 +131,19 @@ export class SyncConcept {
     record: ActionRecord,
     sync: Synchronization,
   ): Promise<[Frames<Frame>, symbol[]]> {
-    let frames = new Frames();
+    let frames: Frames<Frame>;
+    // Patch: Map input.session to the canonical $vars.session symbol in the initial frame if present
+    const initialFrame: Frame = { [flow]: record.flow };
+    // Always use the same symbol instance for session
+    const sessionSymbol = $vars.session;
+    if (
+      record.input &&
+      Object.prototype.hasOwnProperty.call(record.input, "session") &&
+      record.input.session !== undefined
+    ) {
+      initialFrame[sessionSymbol] = record.input.session;
+    }
+    frames = new Frames(initialFrame);
     const whens = sync.when;
     const flowActions = await this.Action._getByFlow(record.flow);
     if (flowActions === undefined) return [frames, []];

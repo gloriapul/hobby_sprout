@@ -266,13 +266,23 @@ export function startRequestingServer(
       // e.g., if base is /api and request is /api/users/create, path is /users/create
       const actionPath = c.req.path.substring(REQUESTING_BASE_URL.length);
 
+      // Extract session from Authorization header if present
+      let session: string | undefined = undefined;
+      const authHeader = c.req.header("authorization");
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        session = authHeader.slice("Bearer ".length);
+      }
+
       // Combine the path from the URL with the JSON body to form the action's input.
       const inputs = {
         ...body,
         path: actionPath,
+        session: session || body.session,
       };
 
-      console.log(`[Requesting] Received request for path: ${inputs.path}`);
+      console.log(
+        `[Requesting] Received request for path: ${inputs.path}, session: ${inputs.session}`,
+      );
 
       // 1. Trigger the 'request' action.
       const { request } = await Requesting.request(inputs);

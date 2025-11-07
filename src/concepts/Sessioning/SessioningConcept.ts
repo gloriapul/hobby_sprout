@@ -86,12 +86,15 @@ export default class SessioningConcept {
   async _getUser(
     { session }: { session: Session },
   ): Promise<Array<{ user: User }> | [{ error: string }]> {
+    console.log("[SESSIONING DEBUG] _getUser called with session:", session);
     const sessionDoc = await this.sessions.findOne({ _id: session });
 
     if (!sessionDoc) {
+      console.log("[SESSIONING DEBUG] _getUser: session not found:", session);
       return [{ error: `Session ${session} not found.` }];
     }
 
+    console.log("[SESSIONING DEBUG] _getUser: found user:", sessionDoc.user);
     return [{ user: sessionDoc.user }];
   }
 }

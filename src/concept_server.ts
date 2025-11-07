@@ -1,3 +1,6 @@
+console.log(
+  "[CONCEPT_SERVER DEBUG] Server file loaded and logging is working.",
+);
 import { Hono } from "@hono/hono";
 import { walk } from "@std/fs";
 import { toFileUrl } from "@std/path/to-file-url";
@@ -106,8 +109,32 @@ async function main() {
 
         app.post(route, async (c) => {
           try {
+            console.log(
+              `[CONCEPT_SERVER DEBUG] Entered POST handler for ${route}`,
+            );
+            // Extract session from Authorization header if present
+            let session: string | undefined = undefined;
+            const authHeader = c.req.header("authorization");
+            if (authHeader && authHeader.startsWith("Bearer ")) {
+              session = authHeader.slice("Bearer ".length);
+            }
             const body = await c.req.json().catch(() => ({})); // Handle empty body
-            const result = await instance[methodName](body);
+            console.log(
+              `[CONCEPT_SERVER DEBUG] Parsed body for ${route}:`,
+              body,
+            );
+            // Inject session into body if not already present
+            const input = { ...body };
+            if (session && !input.session) {
+              input.session = session;
+            }
+            // Debug log for session injection
+            console.log(
+              `[CONCEPT_SERVER DEBUG] POST ${route} input.session:`,
+              input.session,
+            );
+            console.log(`[CONCEPT_SERVER DEBUG] POST ${route} input:`, input);
+            const result = await instance[methodName](input);
             return c.json(result);
           } catch (e) {
             console.error(`Error in ${conceptName}.${methodName}:`, e);
@@ -124,9 +151,9 @@ async function main() {
     }
   }
 
+  // Run the server
   console.log(`\nServer listening on http://localhost:${PORT}`);
   Deno.serve({ port: PORT }, app.fetch);
 }
 
-// Run the server
 main();
