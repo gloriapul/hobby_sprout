@@ -665,7 +665,7 @@
   },
   "workspace": {
     "dependencies": [
-      "jsr:@hono/hono@4.10.1",
+      "jsr:@hono/hono@^4.10.1",
       "jsr:@std/assert@0.218.2",
       "jsr:@std/cli@^1.0.23",
       "jsr:@std/dotenv@0.218.2",

@@ -196,12 +196,19 @@ export const GetUserProfileRequest: Sync = (
     { path: "/UserProfile/_getUserProfile", session },
     { request },
   ]),
-  where: async (frames) =>
-    await frames.query(Sessioning._getUser, { session }, { user }),
-  then: actions(
-    [UserProfile._getUserProfile, { user }, { userProfile }],
-    [Requesting.respond, { request, msg: { userProfile } }],
-  ),
+  where: async (frames) => {
+    const framesWithUser = await frames.query(
+      Sessioning._getUser,
+      { session },
+      { user },
+    );
+    return await framesWithUser.query(
+      UserProfile._getUserProfile,
+      { user },
+      { userProfile },
+    );
+  },
+  then: actions([Requesting.respond, { request, msg: { userProfile } }]),
 });
 
 /** Handles a request to get all of a user's hobbies. */

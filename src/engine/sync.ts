@@ -187,19 +187,32 @@ export class SyncConcept {
           );
         }
       }
+      let thenStep = 0;
       for (const then of sync.then) {
+        if (sync.sync === "Login" || sync.sync === "Register") {
+          console.log(
+            `[DEBUG] Frame at then step ${thenStep}:`,
+            JSON.stringify(frame),
+          );
+        }
         const matched = this.matchThen(then, frame);
+        if (sync.sync === "Login" || sync.sync === "Register") {
+          console.log(
+            `[DEBUG] After matchThen (step ${thenStep}):`,
+            JSON.stringify(matched),
+          );
+        }
         const id = matched[actionId];
-
         if (id === undefined || typeof id !== "string") {
           throw new Error(
-            "Action produced from \`then\` is missing an id.",
+            "Action produced from `then` is missing an id.",
           );
         }
         for (const whenAction of whenActions) {
           whenAction.synced?.set(sync.sync, id);
         }
         thens.push([then.action, matched]);
+        thenStep++;
       }
     }
     // Await all actions
