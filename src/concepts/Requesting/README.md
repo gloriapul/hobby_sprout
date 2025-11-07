@@ -68,10 +68,7 @@ then what you need is to **reify requests**. This is the purpose of the Requesti
 
 By default, all concepts and their actions/queries will automatically be discovered, and registered as **unverified routes**. You will see a log of these when you first start the server through `deno run start`. 
 
-**Configuring Passthrough**
-1. Open [passthrough.ts](passthrough.ts) to configure passthrough. 
-2. For every passthrough route you think makes sense and should be **included**, add it to `const inclusions = {...}` as a key/value pair `"route": "justification"`. For example, you might have `"/api/LikertSurvey/_getSurveyQuestions": "this is a public query"`
-3. For every passthrough route you think should be **excluded**, simply add the route to `const exclusions = [...]`, such as `"/api/LikertSurvey/createSurvey"`
+All included and excluded routes are listed in[passthrough.ts](passthrough.ts).
 
 # Requesting Routes
 
@@ -111,7 +108,3 @@ or in TypeScript,
   then: actions([Requesting.respond, { request, survey }])
 }
 ```
-
-See [sample.sync](src/syncs/sample.sync.ts) for example synchronizations that implement a basic request/response cycle that mimics a passthrough route for the `/LikertSurvey/createSurvey` path.
-
-> **Important**: the `path` parameter does NOT take into account the base URL, and hence the examples above use "/LikertSurvey/createSurvey" instead of "/api/LikertSurvey/createSurvey". You should take this into account when pattern matching in synchronizations against literal values for the path.

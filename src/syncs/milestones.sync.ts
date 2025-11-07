@@ -98,7 +98,7 @@ export const GenerateStepsAfterGoalCreated: Sync = (
     { user, hobby, description, autoGenerate: true },
     { goalId },
   ]),
-  then: actions([MilestoneTracker.generateSteps, { goal: goalId }]),
+  then: actions([MilestoneTracker.generateSteps, { goal: goalId, user }]),
 });
 
 /** Responds with an error if goal creation with auto-steps fails. */
