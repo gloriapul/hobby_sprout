@@ -26,7 +26,8 @@
 
 export const inclusions: Record<string, string> = {
   // PasswordAuthentication - public actions for registration
-  "/api/PasswordAuthentication/register": "public action - anyone can register to join the platform",
+  "/api/PasswordAuthentication/register":
+    "public action - anyone can register to join the platform",
   "/api/PasswordAuthentication/authenticate":
     "public action - anyone can authenticate as they choose",
 };
@@ -81,6 +82,9 @@ export const exclusions: Array<string> = [
   "/api/Sessioning/start",
   "/api/Sessioning/end",
   "/api/Sessioning/_getUser",
+
+  // Logout, explicitly add here to make it clear it exists and is used
+  "/api/logout",
 
   // MilestoneTracker - private helper methods, not actions
   "/api/MilestoneTracker/initializeLLM",

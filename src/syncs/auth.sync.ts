@@ -95,3 +95,22 @@ export const DeleteUserAfterProfileClosed: Sync = ({ user, request }) => ({
   ),
   then: actions([PasswordAuthentication.deleteUser, { user }]),
 });
+
+//-- User Logout --//
+
+export const LogoutRequest: Sync = ({ request, session }) => ({
+  when: actions([
+    Requesting.request,
+    { path: "/logout", session },
+    { request },
+  ]),
+  then: actions([Sessioning.end, { session }]),
+});
+
+export const LogoutResponse: Sync = ({ request }) => ({
+  when: actions(
+    [Requesting.request, { path: "/logout" }, { request }],
+    [Sessioning.end, {}, {}],
+  ),
+  then: actions([Requesting.respond, { request }]),
+});
