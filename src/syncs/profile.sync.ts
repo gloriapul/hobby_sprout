@@ -217,7 +217,7 @@ export const GetUserHobbiesRequest: Sync = (
 ) => ({
   when: actions([
     Requesting.request,
-    { path: "/UserProfile/_getUserHobbies" },
+    { path: "/UserProfile/_getUserHobbies", session },
     { request },
   ]),
   where: async (frames) => {

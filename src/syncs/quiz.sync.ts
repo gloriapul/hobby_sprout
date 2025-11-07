@@ -97,16 +97,34 @@ export const GetAllHobbyMatchesRequest: Sync = (
   ]),
   where: async (frames) => {
     const originalFrame = frames[0];
+    console.log(
+      "[QUIZ SYNC] GetAllHobbyMatchesRequest: where clause start, session:",
+      session,
+    );
     frames = await frames.query(Sessioning._getUser, { session }, { user });
+    console.log(
+      "[QUIZ SYNC] GetAllHobbyMatchesRequest: after _getUser, frames:",
+      frames,
+    );
     frames = await frames.query(QuizMatchmaker._getAllHobbyMatches, { user }, {
       id,
       hobby,
       matchedAt,
     });
+    console.log(
+      "[QUIZ SYNC] GetAllHobbyMatchesRequest: after _getAllHobbyMatches, frames:",
+      frames,
+    );
     if (frames.length === 0) {
+      console.log("[QUIZ SYNC] GetAllHobbyMatchesRequest: no matches found");
       return new Frames({ ...originalFrame, [matches]: [] });
     }
-    return frames.collectAs([id, hobby, matchedAt], matches);
+    const collected = frames.collectAs([id, hobby, matchedAt], matches);
+    console.log(
+      "[QUIZ SYNC] GetAllHobbyMatchesRequest: returning collected matches:",
+      collected,
+    );
+    return collected;
   },
   then: actions([Requesting.respond, { request, matches }]),
 });

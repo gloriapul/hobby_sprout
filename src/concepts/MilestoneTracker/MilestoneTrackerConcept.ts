@@ -388,11 +388,14 @@ export default class MilestoneTrackerConcept {
     step: Step;
     user: User;
   }): Promise<Empty | { error: string }> {
+    console.debug("[completeStep] called", { step, user });
     const targetStep = await this.steps.findOne({ _id: step });
     if (!targetStep) {
+      console.warn(`[completeStep] Step not found: ${step}`);
       return { error: `Step ${step} not found.` };
     }
     if (targetStep.isComplete) {
+      console.warn(`[completeStep] Step already complete: ${step}`);
       return { error: `Step ${step} is already complete.` };
     }
 
@@ -402,6 +405,10 @@ export default class MilestoneTrackerConcept {
       user,
     });
     if (!targetGoal) {
+      console.warn(`[completeStep] Goal not active or no permission for user`, {
+        goalId: targetStep.goalId,
+        user,
+      });
       return {
         error:
           `Goal associated with step ${step} is not active or you do not have permission. Cannot complete step.`,
@@ -414,10 +421,13 @@ export default class MilestoneTrackerConcept {
         { $set: { isComplete: true, completion: new Date() } },
       );
       if (updateResult.modifiedCount !== 1) {
+        console.error(`[completeStep] Failed to update step: ${step}`);
         return { error: `Failed to update step ${step}.` };
       }
+      console.debug(`[completeStep] Step completed: ${step}`);
       return {};
     } catch (e) {
+      console.error(`[completeStep] Exception:`, e);
       return {
         error: `Failed to complete step: ${
           e instanceof Error ? e.message : String(e)
@@ -483,30 +493,41 @@ export default class MilestoneTrackerConcept {
    * @effects sets `isActive` of `goal` to `false`.
    */
   async closeGoal({
-    goalId,
+    goal,
     user,
   }: {
-    goalId: Goal;
+    goal: Goal;
     user: User;
   }): Promise<Empty | { error: string }> {
+    console.debug("[closeGoal] called", { goal, user });
     const targetGoal = await this.goals.findOne({
-      _id: goalId,
+      _id: goal,
       isActive: true,
       user,
     });
     if (!targetGoal) {
+      console.warn(`[closeGoal] Goal not found, not active, or no permission`, {
+        goal,
+        user,
+      });
       return {
         error:
-          `Goal ${goalId} not found, is not active, or you do not have permission.`,
+          `Goal ${goal} not found, is not active, or you do not have permission.`,
       };
     }
 
     try {
-      await this.goals.updateOne({ _id: goalId }, {
+      const updateResult = await this.goals.updateOne({ _id: goal }, {
         $set: { isActive: false },
       });
+      if (updateResult.modifiedCount !== 1) {
+        console.error(`[closeGoal] Failed to update goal: ${goal}`);
+        return { error: `Failed to close goal ${goal}.` };
+      }
+      console.debug(`[closeGoal] Goal closed: ${goal}`);
       return {};
     } catch (e) {
+      console.error(`[closeGoal] Exception:`, e);
       return {
         error: `Failed to close goal: ${
           e instanceof Error ? e.message : String(e)
