@@ -353,6 +353,16 @@ export default class MilestoneTrackerConcept {
       return { error: validationError };
     }
 
+    // Check for existing step with same goal and description
+    const existingStep = await this.steps.findOne({
+      goalId: goal,
+      description: description.trim(),
+    });
+    if (existingStep) {
+      // Return the existing step's ID
+      return { step: existingStep._id };
+    }
+
     const newStepId = freshID();
     const newStep: StepDoc = {
       _id: newStepId,
