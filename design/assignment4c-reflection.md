@@ -4,7 +4,7 @@ This project was a challenging but ultimately positive journey that gave me a de
 
 ### What was hard or easy?
 
--   **Hardest Part:** The integration of my front and backend was a very tedious process. In general, backend was hard since I have had less experience with it. The syncs in particular in this final assignment required a lot of time for me to reflect on to understand how to break down each sync and how they all work together to make the app what it is. 
+-   **Hardest Part:** The integration of my front and backend was a very tedious process. In general, backend was hard since I have had less experience with it. The syncs in particular in this final assignment required a lot of time for me to reflect on to understand how to break down each sync and how they all work together to make the app what it is. By far, the syncs took the most time.
 
 -   **Easiest Part:** The easiest part of this assignment was frontend for me as I have had experience there. I enjoyed doing the visual study and narrowing down what the appearance of my application should be. 
 
