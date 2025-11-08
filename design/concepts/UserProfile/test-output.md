@@ -12,7 +12,7 @@ Principle: User creates profile, adds personal information ...
    ✓ Profile verification successful: User has correct name and image
 5. Principle satisfied: User profile created and information is visible
 ----- output end -----
-Principle: User creates profile, adds personal information ... ok (775ms)
+Principle: User creates profile, adds personal information ... ok (716ms)
 Action: setHobby/closeHobby manages hobby assignments and status ...
 ------- output -------
 1. Creating a profile for hobby management
@@ -25,7 +25,7 @@ Action: setHobby/closeHobby manages hobby assignments and status ...
    ✓ Hobby "Photography" closed successfully
 5. Action requirements satisfied: setHobby and closeHobby work correctly with proper validation
 ----- output end -----
-Action: setHobby/closeHobby manages hobby assignments and status ... ok (763ms)
+Action: setHobby/closeHobby manages hobby assignments and status ... ok (747ms)
 Action: createProfile/closeProfile enforces profile uniqueness and lifecycle ...
 ------- output -------
 1. Creating a user profile
@@ -33,13 +33,12 @@ Action: createProfile/closeProfile enforces profile uniqueness and lifecycle ...
 2. Testing profile uniqueness - attempting to create duplicate profile
    ✓ Duplicate profile correctly rejected with error: "Profile for user user:Alice already exists."
 3. Deleting the user profile
-[CLOSE_PROFILE] Start for user: user:Alice
    ✓ Profile deleted successfully
 4. Verifying profile is permanently removed
    ✓ Profile verified as permanently removed
 5. Action requirements satisfied: Profile creation enforces uniqueness and profiles can be deleted
 ----- output end -----
-Action: createProfile/closeProfile enforces profile uniqueness and lifecycle ... ok (781ms)
+Action: createProfile/closeProfile enforces profile uniqueness and lifecycle ... ok (766ms)
 Action: closeProfile permanently removes profile and associated data ...
 ------- output -------
 1. Creating a user profile with hobbies
@@ -47,16 +46,14 @@ Action: closeProfile permanently removes profile and associated data ...
 2. Verifying profile and hobbies exist
    ✓ Profile and 2 hobbies verified
 3. Deleting the user profile
-[CLOSE_PROFILE] Start for user: user:Alice
    ✓ Profile deleted successfully
 4. Verifying profile and hobbies are permanently removed
    ✓ Profile and all associated data permanently removed
 5. Attempting to delete non-existent profile
-[CLOSE_PROFILE] Start for user: user:Alice
    ✓ Correctly rejected with error: "User profile for user:Alice not found."
 6. Action requirements satisfied: closeProfile removes all user data permanently
 ----- output end -----
-Action: closeProfile permanently removes profile and associated data ... ok (964ms)
+Action: closeProfile permanently removes profile and associated data ... ok (1s)
 
 ok | 4 passed | 0 failed (3s)
 

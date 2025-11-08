@@ -281,7 +281,6 @@ export default class UserProfileConcept {
   async closeProfile(
     { user }: { user: User },
   ): Promise<Empty | { error: string }> {
-    console.log("[CLOSE_PROFILE] Start for user:", user);
     const profile = await this.userProfiles.findOne({ _id: user });
     if (!profile) {
       return { error: `User profile for ${user} not found.` };
@@ -305,7 +304,7 @@ export default class UserProfileConcept {
       const authConcept = new PasswordAuthenticationConcept(this.db);
       await authConcept.deleteUser({ user });
     } catch (e) {
-      console.error("[CLOSE_PROFILE] Failed to delete auth record:", e);
+      console.error("Failed to delete auth record:", e);
       // Optionally, return error or continue
     }
 
@@ -317,7 +316,7 @@ export default class UserProfileConcept {
       const sessioning = new SessioningConcept(this.db);
       await sessioning["sessions"].deleteMany({ user });
     } catch (e) {
-      console.error("[CLOSE_PROFILE] Failed to delete sessions:", e);
+      console.error("Failed to delete sessions:", e);
       // Optionally, return error or continue
     }
 
