@@ -6,7 +6,6 @@
 
 import { Requesting, Sessioning, UserProfile } from "@concepts";
 import { actions, Frames, Sync } from "@engine";
-import { Frame } from "../engine/types.ts";
 
 //-- Profile Management --//
 
@@ -107,33 +106,32 @@ export const SetImageResponseError: Sync = ({ request, error }) => ({
 });
 
 /** Handles a request to close a user's profile. */
-export const CloseProfileRequest: Sync = ({ request, session, user }) => ({
+export const CloseProfileRequest: Sync = (
+  { request, session, user },
+) => ({
   when: actions([
     Requesting.request,
     { path: "/UserProfile/closeProfile", session },
     { request },
   ]),
-  where: async (frames) => {
-     const userFrames = await frames.query(Sessioning._getUser, { session }, { user });
-     // Always return a Frames object, not Frame[]
-     return new Frames(...(userFrames as Frame[]));
-  },
+  where: async (frames) =>
+    await frames.query(Sessioning._getUser, { session }, { user }),
   then: actions([UserProfile.closeProfile, { user }]),
 });
 
 /** Responds on successful profile closure. */
 export const CloseProfileResponse: Sync = ({ request }) => ({
   when: actions(
-    [Requesting.request, { path: "/UserProfile/closeProfile", session: undefined }, { request }],
+    [Requesting.request, { path: "/UserProfile/closeProfile" }, { request }],
     [UserProfile.closeProfile, {}, {}],
   ),
-  then: actions([Requesting.respond, { request, msg: { success: true } }]),
+  then: actions([Requesting.respond, { request, msg: {} }]),
 });
 
 /** Responds with an error if profile closure fails (e.g., DB error). */
 export const CloseProfileResponseError: Sync = ({ request, error }) => ({
   when: actions(
-    [Requesting.request, { path: "/UserProfile/closeProfile", session: undefined }, { request }],
+    [Requesting.request, { path: "/UserProfile/closeProfile" }, { request }],
     [UserProfile.closeProfile, {}, { error }],
   ),
   then: actions([Requesting.respond, { request, msg: { error } }]),

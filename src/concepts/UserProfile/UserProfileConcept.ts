@@ -226,37 +226,45 @@ export default class UserProfileConcept {
   ): Promise<Empty | { error: string }> {
     console.log("[CLOSE_PROFILE] Start for user:", user);
     const profile = await this.userProfiles.findOne({ _id: user });
-    console.log("[CLOSE_PROFILE] After findOne:", profile);
     if (!profile) {
-      console.log("[CLOSE_PROFILE] Profile not found for user:", user);
-      const ret = { error: `User profile for ${user} not found.` };
-      console.log("[CLOSE_PROFILE] Returning:", ret);
-      return ret;
+      return { error: `User profile for ${user} not found.` };
     }
 
-    console.log("[CLOSE_PROFILE] Deleting hobbies for user:", user);
-    const deleteHobbiesResult = await this.userHobbies.deleteMany({
-      userId: user,
-    });
-    console.log(
-      "[CLOSE_PROFILE] Hobbies deleted:",
-      deleteHobbiesResult?.deletedCount,
-    );
+    // Delete all hobbies for this user
+    await this.userHobbies.deleteMany({ userId: user });
 
-    console.log("[CLOSE_PROFILE] Deleting user profile:", user);
+    // Delete the user profile
     const result = await this.userProfiles.deleteOne({ _id: user });
-    console.log("[CLOSE_PROFILE] Profile delete result:", result?.deletedCount);
     if (result.deletedCount === 0) {
-      console.log("[CLOSE_PROFILE] Failed to delete profile for user:", user);
-      const ret = { error: `Failed to delete profile for user ${user}.` };
-      console.log("[CLOSE_PROFILE] Returning:", ret);
-      return ret;
+      return { error: `Failed to delete profile for user ${user}.` };
     }
 
-    console.log("[CLOSE_PROFILE] Success for user:", user);
-    const ret = {};
-    console.log("[CLOSE_PROFILE] Returning:", ret);
-    return ret;
+    // Delete the user's authentication record
+    try {
+      // Dynamically import PasswordAuthenticationConcept
+      const { default: PasswordAuthenticationConcept } = await import(
+        "../PasswordAuthentication/PasswordAuthenticationConcept.ts"
+      );
+      const authConcept = new PasswordAuthenticationConcept(this.db);
+      await authConcept.deleteUser({ user });
+    } catch (e) {
+      console.error("[CLOSE_PROFILE] Failed to delete auth record:", e);
+      // Optionally, return error or continue
+    }
+
+    // Delete all sessions for this user
+    try {
+      const { default: SessioningConcept } = await import(
+        "../Sessioning/SessioningConcept.ts"
+      );
+      const sessioning = new SessioningConcept(this.db);
+      await sessioning["sessions"].deleteMany({ user });
+    } catch (e) {
+      console.error("[CLOSE_PROFILE] Failed to delete sessions:", e);
+      // Optionally, return error or continue
+    }
+
+    return {};
   }
 
   /**
