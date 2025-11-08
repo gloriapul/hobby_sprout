@@ -8,7 +8,7 @@ Throughout my time working on this project, it went through many changes but the
 
 I stayed true to the initial design I sketched. My final version also has a dashboard, same navigation header at top, and similar setup overall. I added in some more separation from the milestones page specifically though by having goal history and hobby navigation in the profile page. I also then added the quiz match history in the profile as well, which was a central place for the user to checkout and keeps a sustainable amount of information on each page. I also aimed to make the page welcoming and related to the name, Hobby Sprout, which makes users think of nature, which is why I had a generally green color scheme. 
 
-Overall, my final design is significantly more focused. The addition of new queries and syncs added a lot to the application as well. My decisions such as the ones mentioned in the previous section were made with a potential user in mind. I aimed to make it easy for a user to work on their hobby and stay accountable. I have listed below major specific changes. 
+Overall, my final design is significantly more focused. The addition of new queries and syncs added a lot to the application as well. My decisions such as the ones mentioned in the next section were made with a potential user in mind. I aimed to make it easy for a user to work on their hobby and stay accountable. I have listed below major specific changes. 
 
 ## Key Changes
 
@@ -29,7 +29,7 @@ Overall, my final design is significantly more focused. The addition of new quer
 
 **5. Security Overall:**
 - **Initial:** Security was not deeply considered in assignment 2. 
-- **Final:** The syncs lecture helped greatly with thinking through security. I kept in mind security as a whole, looking at when session ids and user ids should be used, as well as thinking through included and excluded routes. The most significant change was requiring a backend-verified `user` parameter for all data-modifying actions. A session id is now also used, which is huge for security. 
+- **Final:** The syncs lecture helped greatly with thinking through security. I kept in mind security as a whole, looking at when session ids and user ids should be used, as well as thinking through included and excluded routes. The most significant change was requiring a backend-verified `session` parameter for all data-modifying actions.
 
 **6. UI/UX Focus:**
 - **Initial:** Made basic sketches of the UI
