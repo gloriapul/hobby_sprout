@@ -110,11 +110,39 @@ export const CloseProfileRequest: Sync = ({ request, session, user }) => ({
   when: actions([
     Requesting.request,
     { path: "/UserProfile/closeProfile", session },
-    { request },
   ]),
-  where: async (frames) =>
-    await frames.query(Sessioning._getUser, { session }, { user }),
+  where: async (frames) => {
+    console.log("[SYNC] Entered CloseProfileRequest sync:", {
+      request,
+      session,
+      user,
+    });
+    console.log("[SYNC] In CloseProfileRequest.where, session:", session);
+    const userResult = await frames.query(Sessioning._getUser, { session }, {
+      user,
+    });
+    console.log("[SYNC] Result of Sessioning._getUser:", userResult);
+    return userResult;
+  },
   then: actions([UserProfile.closeProfile, { user }]),
+});
+
+/** Responds on successful profile closure. */
+export const CloseProfileResponse: Sync = () => ({
+  when: actions(
+    [Requesting.request, { path: "/UserProfile/closeProfile" }],
+    [UserProfile.closeProfile, {}, {}],
+  ),
+  then: actions([Requesting.respond, { msg: {} }]),
+});
+
+/** Responds with an error if profile closure fails. */
+export const CloseProfileResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/UserProfile/closeProfile" }, { request }],
+    [UserProfile.closeProfile, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, msg: { error } }]),
 });
 
 //-- Hobby Management --//

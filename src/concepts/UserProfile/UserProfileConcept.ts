@@ -61,12 +61,10 @@ export default class UserProfileConcept {
    * or profile image. This action enables subsequent profile modifications.
    */
   async createProfile(
-    
     // passwordauthentication concept would be paired with this concept in a sync
     // but since not implementing syncs yet as specified, then not included
     { user }: { user: User },
   ): Promise<Empty | { error: string }> {
-    console.log("[USERPROFILE DEBUG] createProfile called for user:", user);
     const existingProfile = await this.userProfiles.findOne({ _id: user });
     if (existingProfile) {
       return { error: `Profile for user ${user} already exists.` };
@@ -226,21 +224,39 @@ export default class UserProfileConcept {
   async closeProfile(
     { user }: { user: User },
   ): Promise<Empty | { error: string }> {
+    console.log("[CLOSE_PROFILE] Start for user:", user);
     const profile = await this.userProfiles.findOne({ _id: user });
+    console.log("[CLOSE_PROFILE] After findOne:", profile);
     if (!profile) {
-      return { error: `User profile for ${user} not found.` };
+      console.log("[CLOSE_PROFILE] Profile not found for user:", user);
+      const ret = { error: `User profile for ${user} not found.` };
+      console.log("[CLOSE_PROFILE] Returning:", ret);
+      return ret;
     }
 
-    // delete all hobby records associated with this user
-    await this.userHobbies.deleteMany({ userId: user });
+    console.log("[CLOSE_PROFILE] Deleting hobbies for user:", user);
+    const deleteHobbiesResult = await this.userHobbies.deleteMany({
+      userId: user,
+    });
+    console.log(
+      "[CLOSE_PROFILE] Hobbies deleted:",
+      deleteHobbiesResult?.deletedCount,
+    );
 
-    // delete the user profile
+    console.log("[CLOSE_PROFILE] Deleting user profile:", user);
     const result = await this.userProfiles.deleteOne({ _id: user });
+    console.log("[CLOSE_PROFILE] Profile delete result:", result?.deletedCount);
     if (result.deletedCount === 0) {
-      return { error: `Failed to delete profile for user ${user}.` };
+      console.log("[CLOSE_PROFILE] Failed to delete profile for user:", user);
+      const ret = { error: `Failed to delete profile for user ${user}.` };
+      console.log("[CLOSE_PROFILE] Returning:", ret);
+      return ret;
     }
 
-    return {};
+    console.log("[CLOSE_PROFILE] Success for user:", user);
+    const ret = {};
+    console.log("[CLOSE_PROFILE] Returning:", ret);
+    return ret;
   }
 
   /**
@@ -254,16 +270,10 @@ export default class UserProfileConcept {
   async _getUserProfile(
     { user }: { user: User },
   ): Promise<{ userProfile: UserProfileDoc }[]> {
-    console.log("[USERPROFILE DEBUG] _getUserProfile called with user:", user);
     const profile = await this.userProfiles.findOne({ _id: user });
     if (!profile) {
-      console.log(
-        "[USERPROFILE DEBUG] _getUserProfile: profile not found for user:",
-        user,
-      );
       return [];
     }
-    console.log("[USERPROFILE DEBUG] _getUserProfile: found profile:", profile);
     return [{ userProfile: profile }];
   }
 

@@ -205,33 +205,14 @@ export default class QuizMatchmakerConcept {
   async _getAllHobbyMatches(
     { user }: { user: User },
   ): Promise<{ id: ID; hobby: string; matchedAt: Date }[]> {
-    console.log(
-      "[QuizMatchmakerConcept] _getAllHobbyMatches: called with user:",
-      user,
-    );
-    const start = Date.now();
     let matches;
     try {
       matches = await this.hobbyMatches.find({ user }).sort({ matchedAt: -1 })
         .toArray();
-      console.log(
-        "[QuizMatchmakerConcept] _getAllHobbyMatches: DB query complete, count:",
-        matches.length,
-        "elapsed:",
-        Date.now() - start,
-        "ms",
-      );
     } catch (err) {
-      console.error(
-        "[QuizMatchmakerConcept] _getAllHobbyMatches: DB query error:",
-        err,
-      );
       throw err;
     }
     if (!matches.length) {
-      console.log(
-        "[QuizMatchmakerConcept] _getAllHobbyMatches: no matches found",
-      );
       return [];
     }
     const result = matches.map((m) => ({
@@ -239,11 +220,6 @@ export default class QuizMatchmakerConcept {
       hobby: m.matchedHobby,
       matchedAt: m.matchedAt,
     }));
-    console.log(
-      "[QuizMatchmakerConcept] _getAllHobbyMatches: returning",
-      result.length,
-      "matches",
-    );
     return result;
   }
 }
