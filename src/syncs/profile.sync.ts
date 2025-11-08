@@ -6,6 +6,7 @@
 
 import { Requesting, Sessioning, UserProfile } from "@concepts";
 import { actions, Frames, Sync } from "@engine";
+import { Frame } from "../engine/types.ts";
 
 //-- Profile Management --//
 
@@ -110,36 +111,29 @@ export const CloseProfileRequest: Sync = ({ request, session, user }) => ({
   when: actions([
     Requesting.request,
     { path: "/UserProfile/closeProfile", session },
+    { request },
   ]),
   where: async (frames) => {
-    console.log("[SYNC] Entered CloseProfileRequest sync:", {
-      request,
-      session,
-      user,
-    });
-    console.log("[SYNC] In CloseProfileRequest.where, session:", session);
-    const userResult = await frames.query(Sessioning._getUser, { session }, {
-      user,
-    });
-    console.log("[SYNC] Result of Sessioning._getUser:", userResult);
-    return userResult;
+     const userFrames = await frames.query(Sessioning._getUser, { session }, { user });
+     // Always return a Frames object, not Frame[]
+     return new Frames(...(userFrames as Frame[]));
   },
   then: actions([UserProfile.closeProfile, { user }]),
 });
 
 /** Responds on successful profile closure. */
-export const CloseProfileResponse: Sync = () => ({
+export const CloseProfileResponse: Sync = ({ request }) => ({
   when: actions(
-    [Requesting.request, { path: "/UserProfile/closeProfile" }],
+    [Requesting.request, { path: "/UserProfile/closeProfile", session: undefined }, { request }],
     [UserProfile.closeProfile, {}, {}],
   ),
-  then: actions([Requesting.respond, { msg: {} }]),
+  then: actions([Requesting.respond, { request, msg: { success: true } }]),
 });
 
-/** Responds with an error if profile closure fails. */
+/** Responds with an error if profile closure fails (e.g., DB error). */
 export const CloseProfileResponseError: Sync = ({ request, error }) => ({
   when: actions(
-    [Requesting.request, { path: "/UserProfile/closeProfile" }, { request }],
+    [Requesting.request, { path: "/UserProfile/closeProfile", session: undefined }, { request }],
     [UserProfile.closeProfile, {}, { error }],
   ),
   then: actions([Requesting.respond, { request, msg: { error } }]),

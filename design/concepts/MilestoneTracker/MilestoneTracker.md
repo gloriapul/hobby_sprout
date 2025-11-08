@@ -11,49 +11,49 @@
 *   **principle**: After a user inputs their goal, they will have the option of having an LLM generate their list of recommended steps or will be able to input their own. They can then mark steps as complete, and will be allowed to see those that they have yet to complete and those that have been completed.
 *   **state**:
   *   A set of `Goals` with
-    *   a `user` of type `User` (the owner of the goal)
-    *   a `description` of type `String`
-    *   a `hobby` of type `String` (the hobby this goal is associated with)
-    *   an `isActive` of type `Boolean` (true if the goal is currently being tracked)
-    *   A set of `Steps` with
-        *   a `goalId` of type `Goal` (reference to the parent goal)
-        *   a `description` of type `String`
-        *   a `start` of type `Date`
-        *   a `completion` of type `Date?` (optional, date when the step was completed)
-        *   an `isComplete` of type `Boolean`
+  *   a `user` of type `User` (the owner of the goal)
+  *   a `description` of type `String`
+  *   a `hobby` of type `String` (the hobby this goal is associated with)
+  *   an `isActive` of type `Boolean` (true if the goal is currently being tracked)
+*   A set of `Steps` with
+  *   a `goalId` of type `Goal` (reference to the parent goal)
+  *   a `description` of type `String`
+  *   a `start` of type `Date`
+  *   a `completion` of type `Date?` (optional, date when the step was completed)
+  *   an `isComplete` of type `Boolean`
 *   **actions**:
-  *   `createGoal(user: User, description: String, hobby: String): (goal: Goal)`
+  *   `createGoal(user: User, description: String, hobby: String): (goalId: Goal)`
     *   **requires**: No active `Goal` for this `user` and `hobby` already exists. `description` and `hobby` are not empty strings.
-    *   **effects**: Creates a new `Goal` `g`; sets its `user` to `user`, `description` to `description`, and `hobby` to `hobby`; sets `isActive` to `true`; returns `g` as `goal`.
+  *   **effects**: Creates a new `Goal` `g`; sets its `user` to `user`, `description` to `description`, and `hobby` to `hobby`; sets `isActive` to `true`; returns `g` as `goalId`.
   *   `generateSteps(goal: Goal, user: User): (steps: Step[])`
     *   **requires**: `goal` exists and is active; no `Steps` are currently associated with this `goal`.
-    *   **effects**: Uses an internal LLM to generate `Step` descriptions based on the `goal`'s description; for each generated description, creates a new `Step` associated with `goal`, sets `description`, `start` (current date), and `isComplete` to `false`; returns the IDs of the created `Steps` as an array `steps`.
+  *   **effects**: Uses an internal LLM to generate `Step` descriptions based on the `goal`'s description; for each generated description, creates a new `Step` associated with `goal`, sets `description`, `start` (current date), and `isComplete` to `false`; returns the IDs of the created `Steps` as an array `steps`.
   *   `regenerateSteps(goal: Goal, user: User): (steps: Step[])`
     *   **requires**: `goal` exists and is active.
-    *   **effects**: Deletes all existing `Steps` for the `goal` (regardless of completion status), then uses the internal LLM to generate new `Step` descriptions as in `generateSteps`. For each generated description, creates a new `Step` associated with `goal`, sets `description`, `start` (current date), and `isComplete` to `false`; returns the IDs of the new `Steps` as an array `steps`.
-    *   `addStep(goal: Goal, description: String, user: User): (step: Step)`
-        *   **requires**: `goal` exists and is active; `description` is not an empty string.
-        *   **effects**: Creates a new `Step` `s`; sets `goalId` to `goal`, `description` to `description`, `start` to current date, and `isComplete` to `false`; returns `s` as `step`.
-    *   `completeStep(step: Step, user: User): Empty`
-        *   **requires**: `step` exists and is not already complete. The `Goal` associated with `step` is active.
-        *   **effects**: Sets `isComplete` of `step` to `true`; sets `completion` date to current date.
-    *   `removeStep(step: Step, user: User): Empty`
-        *   **requires**: `step` exists; `step` is not complete; the `Goal` associated with `step` is active.
-        *   **effects**: Deletes the `step` from storage.
-    *   `closeGoal(goal: Goal, user: User): Empty`
-        *   **requires**: `goal` exists and is active.
-        *   **effects**: Sets `isActive` of `goal` to `false`.
+  *   **effects**: Deletes all existing `Steps` for the `goal` (regardless of completion status), then uses the internal LLM to generate new `Step` descriptions as in `generateSteps`. For each generated description, creates a new `Step` associated with `goal`, sets `description`, `start` (current date), and `isComplete` to `false`; returns the IDs of the new `Steps` as an array `steps`.
+  *   `addStep(goal: Goal, description: String, user: User): (step: Step)`
+    *   **requires**: `goal` exists and is active; `description` is not an empty string.
+    *   **effects**: Creates a new `Step` `s`; sets `goalId` to `goal`, `description` to `description`, `start` to current date, and `isComplete` to `false`; returns `s` as `step`.
+  *   `completeStep(step: Step, user: User): Empty`
+    *   **requires**: `step` exists and is not already complete. The `Goal` associated with `step` is active.
+    *   **effects**: Sets `isComplete` of `step` to `true`; sets `completion` date to current date.
+  *   `removeStep(step: Step, user: User): Empty`
+    *   **requires**: `step` exists; `step` is not complete; the `Goal` associated with `step` is active.
+    *   **effects**: Deletes the `step` from storage.
+  *   `closeGoal(goal: Goal, user: User): Empty`
+    *   **requires**: `goal` exists and is active.
+    *   **effects**: Sets `isActive` of `goal` to `false`.
 
 *   **queries**:
   *   `_getGoal(user: User, hobby?: String): (goal: {id: Goal, description: String, hobby: String, isActive: Boolean})[]`
     *   **requires**: none
-    *   **effects**: Returns an array containing the active `Goal`(s) for the `user` (optionally filtered by `hobby`), including its `id`, `description`, `hobby`, and `isActive` status. Returns empty array if no active goals exist.
+  *   **effects**: Returns an array containing the active `Goal`(s) for the `user` (optionally filtered by `hobby`), including its `id`, `description`, `hobby`, and `isActive` status. Returns empty array if no active goals exist.
   *   `_getAllGoals(user: User, hobby?: String): (goal: {id: Goal, description: String, hobby: String, isActive: Boolean})[]`
     *   **requires**: none
     *   **effects**: Returns an array containing all goals (active and inactive) for the `user` (optionally filtered by `hobby`), including its `id`, `description`, `hobby`, and `isActive` status. Returns empty array if no goals exist.
   *   `_getSteps(goal: Goal): (step: {id: Step, description: String, start: Date, completion: Date?, isComplete: Boolean})[]`
-      *   **requires**: none
-      *   **effects**: Returns an array of all `Steps` for the given `goal`, including their details. Returns empty array if no steps exist.
+    *   **requires**: none
+    *   **effects**: Returns an array of all `Steps` for the given `goal`, including their details. Returns empty array if no steps exist.
 
 # file: src/concepts/MilestoneTracker/MilestoneTrackerConcept.ts
 
@@ -415,6 +415,16 @@ export default class MilestoneTrackerConcept {
       return { error: validationError };
     }
 
+    // Check for existing step with same goal and description
+    const existingStep = await this.steps.findOne({
+      goalId: goal,
+      description: description.trim(),
+    });
+    if (existingStep) {
+      // Return the existing step's ID
+      return { step: existingStep._id };
+    }
+
     const newStepId = freshID();
     const newStep: StepDoc = {
       _id: newStepId,
@@ -450,11 +460,14 @@ export default class MilestoneTrackerConcept {
     step: Step;
     user: User;
   }): Promise<Empty | { error: string }> {
+    console.debug("[completeStep] called", { step, user });
     const targetStep = await this.steps.findOne({ _id: step });
     if (!targetStep) {
+      console.warn(`[completeStep] Step not found: ${step}`);
       return { error: `Step ${step} not found.` };
     }
     if (targetStep.isComplete) {
+      console.warn(`[completeStep] Step already complete: ${step}`);
       return { error: `Step ${step} is already complete.` };
     }
 
@@ -464,6 +477,10 @@ export default class MilestoneTrackerConcept {
       user,
     });
     if (!targetGoal) {
+      console.warn(`[completeStep] Goal not active or no permission for user`, {
+        goalId: targetStep.goalId,
+        user,
+      });
       return {
         error:
           `Goal associated with step ${step} is not active or you do not have permission. Cannot complete step.`,
@@ -476,10 +493,13 @@ export default class MilestoneTrackerConcept {
         { $set: { isComplete: true, completion: new Date() } },
       );
       if (updateResult.modifiedCount !== 1) {
+        console.error(`[completeStep] Failed to update step: ${step}`);
         return { error: `Failed to update step ${step}.` };
       }
+      console.debug(`[completeStep] Step completed: ${step}`);
       return {};
     } catch (e) {
+      console.error(`[completeStep] Exception:`, e);
       return {
         error: `Failed to complete step: ${
           e instanceof Error ? e.message : String(e)
@@ -545,30 +565,41 @@ export default class MilestoneTrackerConcept {
    * @effects sets `isActive` of `goal` to `false`.
    */
   async closeGoal({
-    goalId,
+    goal,
     user,
   }: {
-    goalId: Goal;
+    goal: Goal;
     user: User;
   }): Promise<Empty | { error: string }> {
+    console.debug("[closeGoal] called", { goal, user });
     const targetGoal = await this.goals.findOne({
-      _id: goalId,
+      _id: goal,
       isActive: true,
       user,
     });
     if (!targetGoal) {
+      console.warn(`[closeGoal] Goal not found, not active, or no permission`, {
+        goal,
+        user,
+      });
       return {
         error:
-          `Goal ${goalId} not found, is not active, or you do not have permission.`,
+          `Goal ${goal} not found, is not active, or you do not have permission.`,
       };
     }
 
     try {
-      await this.goals.updateOne({ _id: goalId }, {
+      const updateResult = await this.goals.updateOne({ _id: goal }, {
         $set: { isActive: false },
       });
+      if (updateResult.modifiedCount !== 1) {
+        console.error(`[closeGoal] Failed to update goal: ${goal}`);
+        return { error: `Failed to close goal ${goal}.` };
+      }
+      console.debug(`[closeGoal] Goal closed: ${goal}`);
       return {};
     } catch (e) {
+      console.error(`[closeGoal] Exception:`, e);
       return {
         error: `Failed to close goal: ${
           e instanceof Error ? e.message : String(e)

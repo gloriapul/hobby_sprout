@@ -69,8 +69,8 @@ Deno.test("Principle: Goal lifecycle and input validation (with hobby)", async (
     assertEquals(paintingGoals[0].hobby, "Painting");
 
     // Clean up
-    await milestoneTracker.closeGoal({ goalId: goalId1, user: userA });
-    await milestoneTracker.closeGoal({ goalId: goalId2, user: userA });
+    await milestoneTracker.closeGoal({ goal: goalId1, user: userA });
+    await milestoneTracker.closeGoal({ goal: goalId2, user: userA });
   } finally {
     await client.close();
   }
@@ -400,7 +400,7 @@ Deno.test("Action: robust error handling for invalid inputs and states", async (
 
     console.log("3. Testing closing a non-existent goal");
     const closeNonExistentResult = await milestoneTracker.closeGoal({
-      goalId: "goal:nonexistent" as ID,
+      goal: "goal:nonexistent" as ID,
       user: userB,
     });
     assertEquals(
@@ -416,11 +416,11 @@ Deno.test("Action: robust error handling for invalid inputs and states", async (
 
     console.log("4. Testing closing an already closed goal");
     // close the valid goal we created
-    await milestoneTracker.closeGoal({ goalId: goalId, user: userB });
+    await milestoneTracker.closeGoal({ goal: goalId, user: userB });
 
     // close it again
     const closeAgainResult = await milestoneTracker.closeGoal({
-      goalId: goalId,
+      goal: goalId,
       user: userB,
     });
     assertEquals(
@@ -540,7 +540,7 @@ Deno.test("Action: removeStep removes an incomplete step and validates constrain
       user: userA,
     });
     const stepCId = (addC as { step: ID }).step;
-    await milestoneTracker.closeGoal({ goalId: goalId, user: userA });
+    await milestoneTracker.closeGoal({ goal: goalId, user: userA });
     const removeInactive = await milestoneTracker.removeStep({
       step: stepCId,
       user: userA,
