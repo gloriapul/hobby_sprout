@@ -37,9 +37,9 @@
         *   **requires**: the user to exist in the set of `Users`.
             A `UserHobby` record for the specified `user` and `hobby` must exist and be `active`.
         *   **effects**: sets the `active` status of the specified `UserHobby` record to `false` (inactive).
-    *   `closeProfile (user: User): ()`
-        *   **requires**: the user to exist in the set of `Users`.
-        *   **effects**: permanently deletes the user's profile and all associated hobby records from the database.
+  *   `closeProfile (user: User): ()`
+    *   **requires**: the user to exist in the set of `Users`.
+    *   **effects**: permanently deletes the user's profile, all associated hobby records, the user's authentication record (username/password), and all active sessions/tokens for that user from the database. After this, the user cannot log in again with the same credentials.
     *   `_getUserProfile (user: User): (UserProfileDoc[])`
         *   **requires**: user to exist in the set of users.
         *   **effects**: returns the full profile data for the specified user.
@@ -281,18 +281,44 @@ export default class UserProfileConcept {
   async closeProfile(
     { user }: { user: User },
   ): Promise<Empty | { error: string }> {
+    console.log("[CLOSE_PROFILE] Start for user:", user);
     const profile = await this.userProfiles.findOne({ _id: user });
     if (!profile) {
       return { error: `User profile for ${user} not found.` };
     }
 
-    // delete all hobby records associated with this user
+    // Delete all hobbies for this user
     await this.userHobbies.deleteMany({ userId: user });
 
-    // delete the user profile
+    // Delete the user profile
     const result = await this.userProfiles.deleteOne({ _id: user });
     if (result.deletedCount === 0) {
       return { error: `Failed to delete profile for user ${user}.` };
+    }
+
+    // Delete the user's authentication record
+    try {
+      // Dynamically import PasswordAuthenticationConcept
+      const { default: PasswordAuthenticationConcept } = await import(
+        "../PasswordAuthentication/PasswordAuthenticationConcept.ts"
+      );
+      const authConcept = new PasswordAuthenticationConcept(this.db);
+      await authConcept.deleteUser({ user });
+    } catch (e) {
+      console.error("[CLOSE_PROFILE] Failed to delete auth record:", e);
+      // Optionally, return error or continue
+    }
+
+    // Delete all sessions for this user
+    try {
+      const { default: SessioningConcept } = await import(
+        "../Sessioning/SessioningConcept.ts"
+      );
+      const sessioning = new SessioningConcept(this.db);
+      await sessioning["sessions"].deleteMany({ user });
+    } catch (e) {
+      console.error("[CLOSE_PROFILE] Failed to delete sessions:", e);
+      // Optionally, return error or continue
     }
 
     return {};
