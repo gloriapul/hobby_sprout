@@ -237,17 +237,22 @@ export default class QuizMatchmakerConcept {
   async _getAllHobbyMatches(
     { user }: { user: User },
   ): Promise<{ id: ID; hobby: string; matchedAt: Date }[]> {
-    const matches = await this.hobbyMatches.find({ user }).sort({
-      matchedAt: -1,
-    }).toArray();
+    let matches;
+    try {
+      matches = await this.hobbyMatches.find({ user }).sort({ matchedAt: -1 })
+        .toArray();
+    } catch (err) {
+      throw err;
+    }
     if (!matches.length) {
       return [];
     }
-    return matches.map((m) => ({
+    const result = matches.map((m) => ({
       id: m._id,
       hobby: m.matchedHobby,
       matchedAt: m.matchedAt,
     }));
+    return result;
   }
 }
 ```

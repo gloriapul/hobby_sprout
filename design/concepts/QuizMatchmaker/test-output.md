@@ -26,7 +26,7 @@ Action: should fail if answers array is not length 5 ...
    ✓ Error received: Must provide exactly 5 answers.
 [Action] PASS: Error for invalid answers array length
 ----- output end -----
-Action: should fail if answers array is not length 5 ... ok (543ms)
+Action: should fail if answers array is not length 5 ... ok (578ms)
 Action: should fail if LLM is not initialized ...
 ------- output -------
 
@@ -34,7 +34,7 @@ Action: should fail if LLM is not initialized ...
    ✓ Error received: LLM not initialized. API key might be missing or invalid.
 [Action] PASS: Error for uninitialized LLM
 ----- output end -----
-Action: should fail if LLM is not initialized ... ok (536ms)
+Action: should fail if LLM is not initialized ... ok (547ms)
 Action: should return empty array for user with no matches ...
 ------- output -------
 
@@ -42,7 +42,7 @@ Action: should return empty array for user with no matches ...
    ✓ Empty array returned for user with no matches
 [Action] PASS: Empty array for user with no matches
 ----- output end -----
-Action: should return empty array for user with no matches ... ok (556ms)
+Action: should return empty array for user with no matches ... ok (607ms)
 
 ok | 5 passed | 0 failed (4s)
 
