@@ -164,16 +164,14 @@ export default class QuizMatchmakerConcept {
         };
       }
 
-      // Prevent duplicate hobby matches for this user and hobby
-      const existing = await this.hobbyMatches.findOne({ user, matchedHobby });
-      if (!existing) {
-        await this.hobbyMatches.insertOne({
-          _id: freshID(),
-          user,
-          matchedHobby,
-          matchedAt: new Date(),
-        });
-      }
+      // Remove any existing match for this user and hobby before inserting
+      await this.hobbyMatches.deleteMany({ user, matchedHobby });
+      await this.hobbyMatches.insertOne({
+        _id: freshID(),
+        user,
+        matchedHobby,
+        matchedAt: new Date(),
+      });
       return { matchedHobby };
     } catch (llmError: unknown) {
       return {
